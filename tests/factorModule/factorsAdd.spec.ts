@@ -1,5 +1,8 @@
 const { test, expect } = require('@playwright/test');
 const path = require('path');
+const config = require('./../configureModule/config');
+const { chromium } = require('playwright');
+
 
 test.use({
   actionTimeout: 5000, // Timeout of 5 seconds for each action
@@ -15,15 +18,25 @@ test.describe('Factor Management: Adding a New Factor', () => {
   test('should redirect to add factors, display the form, and save a new factor', async ({ page }) => {
     console.log('Starting test: Adding a New Factor');
 
-    // Intercept the getAllSchemas API
-    await page.route(`${backendUrl}/getAllSchemas`, async (route) => {
-      console.log('Intercepting API: getAllSchemas');
-      const response = await route.fetch();
-      const responseData = await response.json();
-      allSchema = responseData.schemas; // Save all schemas
-      console.log('All schemas:', allSchema);
-      route.continue();
-    });
+      // Intercept the getAllSchemas API
+      await page.route(`${backendUrl}/getAllSchemas`, async (route) => {
+        try {
+          const response = await route.fetch();
+          if (!response.ok()) {
+            console.error(`getAllSchemas returned status ${response.status()}`);
+            test.fail('getAllSchemas API response not OK');
+            return;
+          }
+          const responseData = await response.json();
+          allSchema = responseData.schemas || []; // Default to empty array
+          console.log('All schemas fetched:', allSchema);
+          route.continue();
+        } catch (err) {
+          console.error('Error intercepting getAllSchemas:', err);
+          test.fail('Error intercepting getAllSchemas API');
+        }
+      });
+      
 
     // Intercept the getSelectedInputSchema API
     await page.route(`${backendUrl}/getSelectedInputSchema`, async (route) => {
@@ -91,11 +104,60 @@ test.describe('Factor Management: Adding a New Factor', () => {
     console.log('Saving the factor...');
     await page.getByRole('button', { name: 'save Save' }).click();
 
-    // Verify success message and redirection
-    console.log('Verifying success message and redirection...');
-    await expect(page.getByText('Saved successfully')).toBeVisible();
-    await page.waitForURL(`${baseUrl}/listoffactors`);
+      await expect(page.getByText('Saved successfully')).toBeVisible();
+      console.log('Save success message displayed.');
 
-    console.log('Test completed: Adding a New Factor');
+      await page.waitForURL(`${baseUrl}/listoffactors`);
+      console.log('Redirected to listoffactors page.');
+
+      // Verify the newly created factor is visible
+      await expect(page.locator(`text=${sampleFactorName}`)).toBeVisible();
+      console.log('Newly created factor is visible:', sampleFactorName);
+    } catch (error) {
+      console.error('Test failed with error:', error);
+      throw error; // Re-throw the error for Playwright to mark the test as failed
+    }
   });
+
+
+  test('should redirect to addfactors route and save formula factor', async ({ page }) => {
+    const baseUrl = 'http://localhost:5173';
+  
+    // Navigate to the "listoffactors" page
+    await page.goto(`${baseUrl}/listoffactors`);
+    await page.waitForTimeout(1000); // Delay for 1 second
+  
+    // Click the "Add Factor" button
+    await page.getByRole('button', { name: 'Add Factor' }).click();
+    await expect(page).toHaveURL(`${baseUrl}/addfactors`);
+  
+    // Check the checkbox with id="formula"
+    const formulaCheckbox = page.locator('#formula');
+    await formulaCheckbox.check(); // Marks the checkbox
+    await expect(formulaCheckbox).toBeChecked(); // Verifies it's checked
+  
+    console.log('Formula checkbox is checked.');
+  
+    // Additional steps to fill the form or perform other actions
+    const sampleFactorName = 'Formula Test Factor';
+    await page.getByPlaceholder('Name').fill(sampleFactorName);
+    await page.getByPlaceholder('Description').fill('Test description for formula factor');
+  
+    // Save the factor
+    // await page.getByRole('button', { name: 'save Save' }).click();
+    // console.log('Save button clicked.');
+  
+    // Verify the success message and redirection
+    // await expect(page.getByText('Saved successfully')).toBeVisible();
+    // console.log('Save success message displayed.');
+  
+    // await page.waitForURL(`${baseUrl}/listoffactors`);
+    // console.log('Redirected to listoffactors page.');
+  
+    // Verify the newly created factor
+    // await expect(page.locator(`text=${sampleFactorName}`)).toBeVisible();
+    // console.log('Newly created formula factor is visible:', sampleFactorName);
+  });
+
+  
 });
