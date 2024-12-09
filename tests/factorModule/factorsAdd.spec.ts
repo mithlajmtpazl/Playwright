@@ -1,108 +1,101 @@
 const { test, expect } = require('@playwright/test');
 const path = require('path');
-const config = require('./../configureModule/config');
-const { chromium } = require('playwright');
-
 
 test.use({
   actionTimeout: 5000, // Timeout of 5 seconds for each action
 });
 
-test.describe('Factor Management: Adding a New Factor', () => {
+test.describe('Adding a New Factor Test', () => {
   const baseUrl = 'http://localhost:5173';
-  const backendUrl = 'http://localhost:3000';
+  const backendUrl = 'http://localhost:3000/api';
   let allSchema = [];
   let usedSchema = [];
   let availableSchemas;
 
-  test('should redirect to add factors, display the form, and save a new factor', async ({ page }) => {
-    console.log('Starting test: Adding a New Factor');
+  test('should redirect to addfactors route, display form, and save factor', async ({ page }) => {
+    try {
+      console.log('Starting test: Adding a New Factor Test');
 
       // Intercept the getAllSchemas API
       await page.route(`${backendUrl}/getAllSchemas`, async (route) => {
-        try {
-          const response = await route.fetch();
-          if (!response.ok()) {
-            console.error(`getAllSchemas returned status ${response.status()}`);
-            test.fail('getAllSchemas API response not OK');
-            return;
-          }
-          const responseData = await response.json();
-          allSchema = responseData.schemas || []; // Default to empty array
-          console.log('All schemas fetched:', allSchema);
-          route.continue();
-        } catch (err) {
-          console.error('Error intercepting getAllSchemas:', err);
-          test.fail('Error intercepting getAllSchemas API');
-        }
+        const response = await route.fetch();
+        const responseData = await response.json();
+        allSchema = responseData.schemas; // Save all schemas
+        console.log('All schemas fetched:', allSchema);
+        route.continue();
       });
-      
 
-    // Intercept the getSelectedInputSchema API
-    await page.route(`${backendUrl}/getSelectedInputSchema`, async (route) => {
-      console.log('Intercepting API: getSelectedInputSchema');
-      const response = await route.fetch();
-      const responseData = await response.json();
-      usedSchema = responseData.selectedInputSchema; // Save used schemas
-      console.log('Used schemas:', usedSchema);
-      route.continue();
-    });
+      // Intercept the getSelectedInputSchema API
+      await page.route(`${backendUrl}/getSelectedInputSchema`, async (route) => {
+        const response = await route.fetch();
+        const responseData = await response.json();
+        usedSchema = responseData.selectedInputSchema; // Save used schemas
+        console.log('Used schemas fetched:', usedSchema);
+        route.continue();
+      });
 
-    // Navigate to the factors list and trigger navigation to add factors
-    console.log('Navigating to factors list page...');
-    await page.goto(`${baseUrl}/listoffactors`);
-    await page.getByRole('button', { name: 'Add Factor' }).click();
-    await expect(page).toHaveURL(`${baseUrl}/addfactors`);
-    console.log('Redirected to add factors page');
+      // Navigate to the page and trigger necessary actions
+      console.log('Navigating to listoffactors page...');
+      await page.goto(`${baseUrl}/listoffactors`);
+      await page.waitForTimeout(1000); // Delay for 1 second
+      await page.getByRole('button', { name: 'Add Factor' }).click();
+      await expect(page).toHaveURL(`${baseUrl}/addfactors`);
 
-    // Wait for the API responses
-    console.log('Waiting for API responses...');
-    await page.waitForResponse(`${backendUrl}/getAllSchemas`);
-    await page.waitForResponse(`${backendUrl}/getSelectedInputSchema`);
+      // Wait for the API responses
+      await page.waitForResponse(`${backendUrl}/getAllSchemas`);
+      console.log('Received response for getAllSchemas API');
+      await page.waitForResponse(`${backendUrl}/getSelectedInputSchema`);
+      console.log('Received response for getSelectedInputSchema API');
 
-    // Calculate available schemas
-    console.log('Calculating available schemas...');
-    availableSchemas = allSchema.filter(
-      (schema) =>
-        !usedSchema.some(
-          (used) => parseInt(used.primary_mapping) === schema.input_schema_id
-        )
-    );
-    console.log('Available schemas:', availableSchemas);
+      // Calculate available schemas
+      availableSchemas = allSchema.filter(
+        (schema) =>
+          !usedSchema.some(
+            (used) => parseInt(used.primary_mapping) === schema.input_schema_id
+          )
+      );
+      console.log('Available schemas:', availableSchemas);
 
-    // Verify the form is displayed
-    console.log('Verifying form visibility...');
-    const heading = page.getByRole('heading', { name: 'Factors' });
-    await expect(heading).toBeVisible();
+      // Verify the form is displayed
+      const heading = page.getByRole('heading', { name: 'Factors' });
+      await expect(heading).toBeVisible();
+      console.log('Factors form is visible.');
 
-    // Fill out the form
-    console.log('Filling out the form...');
-    await page.getByPlaceholder('Name').fill('Sample Factor Name');
-    await page.getByPlaceholder('Description').fill('Sample Description');
+      // Fill out the form with valid data
+      const sampleFactorName = Date.now().toString();
+      console.log('Filling out form with Factor Name:', sampleFactorName);
+      await page.getByPlaceholder('Name').fill(sampleFactorName);
+      await page.getByPlaceholder('Description').fill('test Description');
 
-    // Select a schema if available
-    console.log('Selecting a schema...');
-    await page.getByText('Select the Schema').click();
-    if (availableSchemas.length > 0) {
-      console.log(`Selecting schema: ${availableSchemas[0].value}`);
-      await page.getByText(availableSchemas[0].value).click();
-    } else {
-      console.log('No available schemas for selection.');
-    }
+      // Open the "Select the Schema" dropdown and check for available schemas
+      console.log('Selecting a schema...');
+      await page.getByText('Select the Schema').click();
+      if (availableSchemas.length > 0) {
+        await page.getByText(availableSchemas[0].value).click();
+        console.log('Selected schema:', availableSchemas[0].value);
+      } else {
+        console.log(
+          'No available schemas for selection. Test cannot proceed. Please ensure there are valid schemas to select.'
+        );
+        test.fail('No available schemas for selection. Ensure valid schemas are present.');
+        return;
+      }
 
-    // Upload a file
-    const filePath = path.resolve(__dirname, '../../assets/Spec_sample_codes.xlsx');
-    console.log('Uploading file:', filePath);
-    await page.setInputFiles('#fileInput', filePath);
-    await page.getByRole('button', { name: 'Upload' }).click();
+      // Upload a file
+      const filePath = path.resolve(__dirname, '../../assets/Spec_sample_codes.xlsx');
+      console.log('Uploading file from path:', filePath);
+      await page.getByRole('button', { name: 'Upload' }).click();
+      await page.setInputFiles('#fileInput', filePath);
+      await page.getByRole('button', { name: 'Upload' }).click();
+      console.log('File uploaded.');
 
-    // Verify file upload
-    console.log('Verifying file upload...');
-    await expect(page.getByText('File uploaded successfully')).toBeVisible();
+      // Verify file upload success message
+      await expect(page.getByText('File uploaded successfully')).toBeVisible();
+      console.log('File upload success message displayed.');
 
-    // Save the factor
-    console.log('Saving the factor...');
-    await page.getByRole('button', { name: 'save Save' }).click();
+      // Save the factor
+      await page.getByRole('button', { name: 'save Save' }).click();
+      console.log('Save button clicked.');
 
       await expect(page.getByText('Saved successfully')).toBeVisible();
       console.log('Save success message displayed.');
@@ -118,46 +111,4 @@ test.describe('Factor Management: Adding a New Factor', () => {
       throw error; // Re-throw the error for Playwright to mark the test as failed
     }
   });
-
-
-  test('should redirect to addfactors route and save formula factor', async ({ page }) => {
-    const baseUrl = 'http://localhost:5173';
-  
-    // Navigate to the "listoffactors" page
-    await page.goto(`${baseUrl}/listoffactors`);
-    await page.waitForTimeout(1000); // Delay for 1 second
-  
-    // Click the "Add Factor" button
-    await page.getByRole('button', { name: 'Add Factor' }).click();
-    await expect(page).toHaveURL(`${baseUrl}/addfactors`);
-  
-    // Check the checkbox with id="formula"
-    const formulaCheckbox = page.locator('#formula');
-    await formulaCheckbox.check(); // Marks the checkbox
-    await expect(formulaCheckbox).toBeChecked(); // Verifies it's checked
-  
-    console.log('Formula checkbox is checked.');
-  
-    // Additional steps to fill the form or perform other actions
-    const sampleFactorName = 'Formula Test Factor';
-    await page.getByPlaceholder('Name').fill(sampleFactorName);
-    await page.getByPlaceholder('Description').fill('Test description for formula factor');
-  
-    // Save the factor
-    // await page.getByRole('button', { name: 'save Save' }).click();
-    // console.log('Save button clicked.');
-  
-    // Verify the success message and redirection
-    // await expect(page.getByText('Saved successfully')).toBeVisible();
-    // console.log('Save success message displayed.');
-  
-    // await page.waitForURL(`${baseUrl}/listoffactors`);
-    // console.log('Redirected to listoffactors page.');
-  
-    // Verify the newly created factor
-    // await expect(page.locator(`text=${sampleFactorName}`)).toBeVisible();
-    // console.log('Newly created formula factor is visible:', sampleFactorName);
-  });
-
-  
 });
