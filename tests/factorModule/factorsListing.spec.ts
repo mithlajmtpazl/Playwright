@@ -1,41 +1,48 @@
-// const { test, expect } = require('@playwright/test');
+const { test, expect } = require('@playwright/test');
+const config = require('./../configureModule/config');
 
+test.use({
+    actionTimeout: 5000, // Timeout of 5 seconds for each action
+});
 
+test.describe('Factors listing tests', () => {
+    const baseUrl = config.baseUrl;
+    const backendUrl = config.backendUrl;
 
-//     test.describe('factors modules test listng page test',()=>{   //describe is used to group test
-//                 const baseUrl = 'http://localhost:5173'
+    test('should verify all factor names are displayed in the UI', async ({ page }) => {
+        let factorNamesFromApi = [];
 
-//         test.beforeEach(async ({ page }) => { //beforeEach make this test executed before each test in the describe block
-//             // Navigate to the factors listing page before each test
-//             await page.goto(`${baseUrl}/listoffactors`)
-//           });
+        // Intercept the API call and extract factor names
+        await page.route(`${backendUrl}/getFactorsList?search=&page=1&limit=10`, async (route) => {
+            const response = await route.fetch();
+            const data = await response.json();
+            console.log('API Response:', data);
 
-//           test('show factors when api returns data',async ({page})=>{
-            
-//           })
+            // Validate the API response
+            expect(data.factorList).not.toBeNull();
+            expect(data.factorList.length).toBeGreaterThan(0);
 
+            // Extract all factor names
+            factorNamesFromApi = data.factorList.map(factor => factor.factor_name);
 
+            // Continue the API request
+            route.continue();
+        });
 
+        // Navigate to the page where factors are listed
+        await page.goto(`${baseUrl}/listoffactors`);
+        await expect(page).toHaveURL(`${baseUrl}/listoffactors`);
 
-        
-//     })
+        // Wait for the page to load data
+        await page.waitForResponse(`${backendUrl}/getFactorsList?search=&page=1&limit=10`);
 
+        // Verify each factor name is displayed in the UI
+        for (const factorName of factorNamesFromApi) {
+            const factorLocator = page.locator(`text="| ${factorName}"`); // Assumes `factor_name` is displayed as text
+            await expect(factorLocator).toBeVisible();
+            console.log(`Verified: ${factorName} is visible on the page.`);
+        }
 
-
-
-//     // test('test', async ({ page }) => {
-//     //     await page.goto('http://localhost:5173/listoffactors');
-//     //     await page.getByPlaceholder('Search Factors...').click();
-//     //     await page.getByRole('button', { name: 'Search' }).click();
-//     //     await page.getByText('Total Records:').click();
-//     //     await page.getByLabel('Go to page').click();
-//     //     await page.getByLabel('Go to previous page').click();
-//     //     const downloadPromise = page.waitForEvent('download');
-//     //     await page.getByRole('button', { name: 'Download' }).click();
-//     //     const download = await downloadPromise;
-//     //     await page.getByText('Factors ListAdd FactorDownload').click();
-//     //     await page.getByRole('button', { name: 'Add Factor' }).click();
-//     //     const a = await page.getByRole('heading', { name: 'Factors' }).click();
-//     //     console.log(a);
-
-//     //   });
+        console.log('All factor names are displayed correctly in the UI.');
+    });
+});
