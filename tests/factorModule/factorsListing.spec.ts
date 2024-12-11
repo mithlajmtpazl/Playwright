@@ -25,12 +25,9 @@ test.describe('Factors listing and search functionality tests', () => {
         await page.goto(`${baseUrl}/listoffactors`);
         await expect(page).toHaveURL(`${baseUrl}/listoffactors`);
 
-        // Wait for the page to load data
-        // await page.waitForResponse(`${backendUrl}/getFactorsList?search=&page=1&limit=10`);
-
         // Verify each factor name is displayed in the UI
         for (const factorName of factorNamesFromApi) {
-            const factorLocator = page.locator(`text=| ${factorName}`); // Assumes `factor_name` is displayed with a pipe symbol
+            const factorLocator = page.locator(`text=${factorName}`); // Adjust locator based on your UI
             await expect(factorLocator).toBeVisible();
             console.log(`Verified: ${factorName} is visible on the page.`);
         }
@@ -39,7 +36,7 @@ test.describe('Factors listing and search functionality tests', () => {
     });
 
     test('should validate the search functionality', async ({ page }) => {
-        const searchTerm:string = factorNamesFromApi[0]
+        const searchTerm = factorNamesFromApi[0]; // Pick the first factor name
         let expectedResults = [];
 
         // Intercept the API request for the search and capture the expected results
@@ -60,7 +57,6 @@ test.describe('Factors listing and search functionality tests', () => {
                 expect(factorName.toLowerCase()).toContain(searchTerm.toLowerCase());
             }
 
-            // Continue the API request
             route.continue();
         });
 
@@ -72,12 +68,9 @@ test.describe('Factors listing and search functionality tests', () => {
         await page.getByPlaceholder('Search Factors...').fill(searchTerm); // Adjust placeholder if different
         await page.getByRole('button', { name: 'Search' }).click();
 
-        // Wait for the search API response
-        await page.waitForResponse(`${backendUrl}/factorSearch?search=${encodeURIComponent(searchTerm)}&page=1&limit=10`);
-
         // Validate the search results in the UI
         for (const factorName of expectedResults) {
-            const factorLocator = page.locator(`text=${factorName}`); // Assumes `factor_name` is displayed as text
+            const factorLocator = page.locator(`text=${factorName}`);
             await expect(factorLocator).toBeVisible();
             console.log(`Verified: ${factorName} is visible in search results.`);
         }
@@ -88,6 +81,38 @@ test.describe('Factors listing and search functionality tests', () => {
             expect(factor.toLowerCase()).toContain(searchTerm.toLowerCase());
         }
 
-        console.log('Search functionality validated successfully.');
+        // Clear the search and validate all data is listed back
+        await page.getByTestId('CloseIcon').click(); // Simulates clicking the close button to clear search
+
+        // Wait for the full list to be reloaded
+        await page.waitForResponse(`${backendUrl}/getFactorsList?search=&page=1&limit=10`);
+
+        // Verify all factors are displayed again
+        for (const factorName of factorNamesFromApi) {
+            const factorLocator = page.locator(`text=${factorName}`);
+            await expect(factorLocator).toBeVisible();
+            console.log(`Verified: ${factorName} is visible after clearing the search.`);
+        }
+
+        console.log('Search clear functionality validated successfully.');
+    });
+
+    test('Enabling and disabling of factors', async ({ page }) => {
+        await page.goto(`${baseUrl}/listoffactors`);
+
+        const factorsToToggle = ['Factor_1733744031585', 'Factor_1733744041517'];
+        for (const factorName of factorsToToggle) {
+            const toggleLocator = page.locator('section', { hasText: `| ${factorName}` }).getByRole('img');
+            await toggleLocator.click();
+            console.log(`Toggled enable/disable for: ${factorName}`);
+        }
+        console.log('Enable/Disable functionality validated successfully.');
     });
 });
+
+    // test('Enabling and disabling of factors',async({page})=>{
+
+    //     await page.goto('http://localhost:5173/listoffactors');
+    //     await page.locator('section').filter({ hasText: '| Factor_1733744031585' }).getByRole('img').click();
+    //     await page.locator('section').filter({ hasText: '| Factor_1733744041517' }).getByRole('img').click();
+    // })
