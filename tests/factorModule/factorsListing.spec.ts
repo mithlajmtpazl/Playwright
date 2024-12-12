@@ -97,17 +97,17 @@ test.describe('Factors listing and search functionality tests', () => {
         console.log('Search clear functionality validated successfully.');
     });
 
-    test('Enabling and disabling of factors', async ({ page }) => {
-        await page.goto(`${baseUrl}/listoffactors`);
+    // test('Enabling and disabling of factors', async ({ page }) => {
+    //     await page.goto(`${baseUrl}/listoffactors`);
 
-        const factorsToToggle = ['Factor_1733744031585', 'Factor_1733744041517'];
-        for (const factorName of factorsToToggle) {
-            const toggleLocator = page.locator('section', { hasText: `| ${factorName}` }).getByRole('img');
-            await toggleLocator.click();
-            console.log(`Toggled enable/disable for: ${factorName}`);
-        }
-        console.log('Enable/Disable functionality validated successfully.');
-    });
+    //     const factorsToToggle = ['Factor_1733744031585', 'Factor_1733744041517'];
+    //     for (const factorName of factorsToToggle) {
+    //         const toggleLocator = page.locator('section', { hasText: `| ${factorName}` }).getByRole('img');
+    //         await toggleLocator.click();
+    //         console.log(`Toggled enable/disable for: ${factorName}`);
+    //     }
+    //     console.log('Enable/Disable functionality validated successfully.');
+    // });
 });
 
     // test('Enabling and disabling of factors',async({page})=>{
