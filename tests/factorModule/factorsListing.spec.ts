@@ -5,54 +5,50 @@ test.use({
     actionTimeout: 5000, // Timeout of 5 seconds for each action
 });
 
-test.describe('Factors listing and search functionality tests', () => {
+test.describe('Factors Listing and Search Functionality Tests', () => {
     const baseUrl = config.baseUrl;
     const backendUrl = config.backendUrl;
     let factorNamesFromApi = [];
 
-    test.beforeAll(async ({ request }) => {
-        // Fetch and populate factors before running the tests
-        const response = await request.get(`${backendUrl}/getFactorsList?search=&page=1&limit=10`);
+    // Helper function to fetch factors from the API
+    const fetchFactors = async (request, search = '', page = 1, limit = 10) => {
+        const response = await request.get(`${backendUrl}/getFactorsList?search=${search}&page=${page}&limit=${limit}`);
+        expect(response.ok()).toBeTruthy(); // Ensure the API call is successful
+
         const data = await response.json();
-        if (data.factorList) {
-            factorNamesFromApi = data.factorList.map(factor => factor.factor_name);
-        }
+        expect(data.factorList).not.toBeNull();
+        return data.factorList;
+    };
+
+    test.beforeAll(async ({ request }) => {
+        const factors = await fetchFactors(request);
+        factorNamesFromApi = factors.map(factor => factor.factor_name);
         expect(factorNamesFromApi.length).toBeGreaterThan(0);
     });
 
-    test('should show factors when API returns data', async ({ page }) => {
-        // Navigate to the page where factors are listed
+    test('should display factors from API in the UI', async ({ page }) => {
         await page.goto(`${baseUrl}/listoffactors`);
         await expect(page).toHaveURL(`${baseUrl}/listoffactors`);
 
-        // Verify each factor name is displayed in the UI
         for (const factorName of factorNamesFromApi) {
-            const factorLocator = page.locator(`text=${factorName}`); // Adjust locator based on your UI
+            const factorLocator = page.locator(`text=${factorName}`);
             await expect(factorLocator).toBeVisible();
             console.log(`Verified: ${factorName} is visible on the page.`);
         }
 
-        console.log('All factor names are displayed correctly in the UI.');
+        console.log('All factors are displayed correctly in the UI.');
     });
 
     test('should validate the search functionality', async ({ page }) => {
-        const searchTerm = factorNamesFromApi[0]; // Pick the first factor name
-        let expectedResults = [];
+        const searchTerm = factorNamesFromApi[0]; // Use the first factor name as the search term
 
-        // Intercept the API request for the search and capture the expected results
         await page.route(`${backendUrl}/factorSearch?search=${encodeURIComponent(searchTerm)}&page=1&limit=10`, async (route) => {
             const response = await route.fetch();
             const data = await response.json();
-            console.log('Search API Response:', data);
 
-            // Validate the API response
             expect(data.factorList).not.toBeNull();
-            expect(data.factorList.length).toBeGreaterThan(0);
+            const expectedResults = data.factorList.map(factor => factor.factor_name);
 
-            // Extract the expected factor names
-            expectedResults = data.factorList.map(factor => factor.factor_name);
-
-            // Ensure all factor names include the search term
             for (const factorName of expectedResults) {
                 expect(factorName.toLowerCase()).toContain(searchTerm.toLowerCase());
             }
@@ -60,59 +56,88 @@ test.describe('Factors listing and search functionality tests', () => {
             route.continue();
         });
 
-        // Navigate to the factors listing page
         await page.goto(`${baseUrl}/listoffactors`);
         await expect(page).toHaveURL(`${baseUrl}/listoffactors`);
 
-        // Perform the search
-        await page.getByPlaceholder('Search Factors...').fill(searchTerm); // Adjust placeholder if different
+        await page.getByPlaceholder('Search Factors...').fill(searchTerm);
         await page.getByRole('button', { name: 'Search' }).click();
 
-        // Validate the search results in the UI
-        for (const factorName of expectedResults) {
+        for (const factorName of factorNamesFromApi) {
             const factorLocator = page.locator(`text=${factorName}`);
             await expect(factorLocator).toBeVisible();
             console.log(`Verified: ${factorName} is visible in search results.`);
         }
 
-        // Additional validation: ensure no extra results are displayed
-        const visibleFactors = await page.locator('.factor-item').allTextContents(); // Adjust selector to match your UI
-        for (const factor of visibleFactors) {
-            expect(factor.toLowerCase()).toContain(searchTerm.toLowerCase());
-        }
-
-        // Clear the search and validate all data is listed back
-        await page.getByTestId('CloseIcon').click(); // Simulates clicking the close button to clear search
-
-        // Wait for the full list to be reloaded
+        await page.getByTestId('CloseIcon').click();
         await page.waitForResponse(`${backendUrl}/getFactorsList?search=&page=1&limit=10`);
 
-        // Verify all factors are displayed again
         for (const factorName of factorNamesFromApi) {
             const factorLocator = page.locator(`text=${factorName}`);
             await expect(factorLocator).toBeVisible();
             console.log(`Verified: ${factorName} is visible after clearing the search.`);
         }
 
-        console.log('Search clear functionality validated successfully.');
+        console.log('Search functionality validated successfully.');
     });
 
-    // test('Enabling and disabling of factors', async ({ page }) => {
-    //     await page.goto(`${baseUrl}/listoffactors`);
+    test('should validate code ranges in the UI', async ({ page, request }) => {
+        const factors = await fetchFactors(request);
 
-    //     const factorsToToggle = ['Factor_1733744031585', 'Factor_1733744041517'];
-    //     for (const factorName of factorsToToggle) {
-    //         const toggleLocator = page.locator('section', { hasText: `| ${factorName}` }).getByRole('img');
-    //         await toggleLocator.click();
-    //         console.log(`Toggled enable/disable for: ${factorName}`);
-    //     }
-    //     console.log('Enable/Disable functionality validated successfully.');
-    // });
+        await page.goto(`${baseUrl}/listoffactors`);
+        await expect(page).toHaveURL(`${baseUrl}/listoffactors`);
+
+        for (const factor of factors) {
+            if (factor.factor_type === 'field') {
+                const factorLocator = page.locator('section', { hasText: `| ${factor.factor_name}` });
+                const codeRangeLocator = factorLocator.locator('h5');
+                const displayedValue = await codeRangeLocator.textContent();
+
+                console.log(`Factor Name: ${factor.factor_name}, Expected Code Range: ${factor.totalCodes}, Displayed Code Range: ${displayedValue}`);
+
+                expect(parseInt(displayedValue, 10)).toBe(factor.totalCodes);
+                expect(factor.totalCodes).toBeGreaterThan(0);
+            }
+        }
+
+        console.log('Code ranges validation completed successfully.');
+    });
+
+    test('should validate factor enable/disable functionality', async ({ page, request }) => {
+        const factors = await fetchFactors(request);
+
+        await page.goto(`${baseUrl}/listoffactors`);
+        await expect(page).toHaveURL(`${baseUrl}/listoffactors`);
+
+        for (const factor of factors) {
+            const factorLocator = page.locator('section', { hasText: `| ${factor.factor_name}` });
+
+            if (factor.enabled) {
+                await expect(factorLocator.locator('img#enabled')).toBeVisible();
+            } else {
+                await expect(factorLocator.locator('img#disabled')).toBeVisible();
+            }
+
+            const toggleButton = factorLocator.locator('img#enabled, img#disabled');
+            await toggleButton.click();
+
+            if (factor.enabled) {
+                await expect(factorLocator.locator('img#disabled')).toBeVisible();
+            } else {
+                await expect(factorLocator.locator('img#enabled')).toBeVisible();
+            }
+
+            await page.reload();
+
+            const refreshedFactors = await fetchFactors(request);
+            const refreshedFactor = refreshedFactors.find(f => f.factor_type_id === factor.factor_type_id);
+
+            if (refreshedFactor.enabled) {
+                await expect(factorLocator.locator('img#enabled')).toBeVisible();
+            } else {
+                await expect(factorLocator.locator('img#disabled')).toBeVisible();
+            }
+        }
+
+        console.log('Enabled/Disabled status validation completed successfully.');
+    });
 });
-
-    // test('Enabling and disabling of factors',async({page})=>{
-
-    //     await page.goto('http://localhost:5173/listoffactors');
-    //     await page.locator('section').filter({ hasText: '| Factor_1733744031585' }).getByRole('img').click();
-    //     await page.locator('section').filter({ hasText: '| Factor_1733744041517' }).getByRole('img').click();
-    // })

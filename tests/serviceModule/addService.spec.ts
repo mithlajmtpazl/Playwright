@@ -26,6 +26,7 @@ test.describe('Service Module - Add Service Functionality', () => {
       console.log(`Filled Name field with: ${uniqueName}`);
       await expect(nameField).toHaveValue(uniqueName);
 
+
       // Fill in the "Description" field
       console.log('Filling in the Description field...');
       const descriptionField = page.getByPlaceholder(' Enter  Your Description');
