@@ -188,6 +188,8 @@ test.describe('Field Factors Module Tests', () => {
     await page.waitForURL(`${baseUrl}/listoffactors`);
 
     // Verify the new factor is visible in the list
-    await expect(page.locator(`text=${sampleFactorName}`)).toBeVisible();
+    await expect(page.locator(`text=${sampleFactorName}`)).toBeVisible(); 
 });
+
+
 });

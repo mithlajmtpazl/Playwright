@@ -13,8 +13,8 @@ test.describe('Service Module - Add Service Functionality', () => {
     try {
       // Navigate to the Add Service page
       console.log('Navigating to the Add Service page...');
-      await page.goto(`${config.baseUrl}/addservice`);
-      await page.waitForTimeout(1000); // Allow the page to load fully
+      await page.goto(`${config.baseUrl}/addservice`, { timeout: 15000 }); // Extended timeout for slow page loads
+      await page.waitForLoadState('networkidle'); // Ensure page is fully loaded
       await expect(page).toHaveURL(`${config.baseUrl}/addservice`);
       console.log('Successfully navigated to Add Service page.');
 
@@ -22,8 +22,6 @@ test.describe('Service Module - Add Service Functionality', () => {
       console.log('Filling in the Name field...');
       const nameField = page.getByPlaceholder('Name');
       await nameField.click();
-      await page.waitForTimeout(500); // Minor delay for UI stabilization
-      await nameField.fill('');
       await nameField.fill(uniqueName);
       console.log(`Filled Name field with: ${uniqueName}`);
       await expect(nameField).toHaveValue(uniqueName);
@@ -32,8 +30,6 @@ test.describe('Service Module - Add Service Functionality', () => {
       console.log('Filling in the Description field...');
       const descriptionField = page.getByPlaceholder(' Enter  Your Description');
       await descriptionField.click();
-      await page.waitForTimeout(500);
-      await descriptionField.fill('');
       await descriptionField.fill(serviceDescription);
       console.log(`Filled Description field with: ${serviceDescription}`);
       await expect(descriptionField).toHaveValue(serviceDescription);
@@ -41,8 +37,7 @@ test.describe('Service Module - Add Service Functionality', () => {
       // Check the "hospitalClaims" checkbox
       console.log('Marking the hospitalClaims checkbox...');
       const hospitalClaimsCheckbox = page.locator('input[name="hospitalClaims"]');
-      await hospitalClaimsCheckbox.check();
-      await page.waitForTimeout(500);
+      await hospitalClaimsCheckbox.check({ timeout: 5000 });
       const isChecked = await hospitalClaimsCheckbox.isChecked();
       expect(isChecked).toBeTruthy();
       console.log(`Checkbox checked status: ${isChecked}`);
@@ -52,7 +47,6 @@ test.describe('Service Module - Add Service Functionality', () => {
       await page.getByRole('img', { name: 'queryIcon' }).click();
       const queryInput = page.getByPlaceholder('Enter the Codes');
       await queryInput.fill('2');
-      await page.waitForTimeout(500);
       console.log('Query added with value: 2');
       await expect(queryInput).toHaveValue('2');
 
@@ -72,7 +66,6 @@ test.describe('Service Module - Add Service Functionality', () => {
       // Add Criteria
       console.log('Adding Criteria...');
       await page.locator('span').filter({ hasText: 'Criteria' }).nth(2).click();
-      await page.waitForTimeout(500);
 
       // Fill the child input field inside the specific div
       console.log('Filling the child input field with specific placeholder...');
@@ -87,21 +80,21 @@ test.describe('Service Module - Add Service Functionality', () => {
       console.log('Saving the Service...');
       const saveButton = page.locator('div').filter({ hasText: /^Save$/ });
       await saveButton.click();
-      await page.waitForTimeout(1000); // Wait for save confirmation to appear
+      await page.waitForTimeout(2000); // Extended wait for save confirmation
       const successMessage = page.getByText('Service saved successfully');
-      await expect(successMessage).toBeVisible();
+      await expect(successMessage).toBeVisible({ timeout: 10000 });
       console.log('Service saved successfully message displayed.');
 
       // Verify redirection to the List of Services page
       console.log('Verifying redirection to the List of Services page...');
-      await page.waitForURL(`${config.baseUrl}/listofservices`);
+      await page.waitForURL(`${config.baseUrl}/listofservices`, { timeout: 15000 });
       await expect(page).toHaveURL(`${config.baseUrl}/listofservices`);
       console.log('Redirected to List of Services page.');
 
       // Verify the newly created service is visible
       console.log('Verifying the newly created service...');
       const createdService = page.locator(`text=${uniqueName}`);
-      await expect(createdService).toBeVisible();
+      await expect(createdService).toBeVisible({ timeout: 10000 });
       console.log(`Newly created service is visible: ${uniqueName}`);
     } catch (error) {
       console.error('Test failed with error:', error);
