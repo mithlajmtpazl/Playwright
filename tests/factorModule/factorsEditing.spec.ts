@@ -79,5 +79,7 @@ test.describe('Factors Editing Functional Tests', () => {
 // Locate the factor name on the new page
 const factorNameOnDetailsPage = page.locator('text=' + factorName); // Adjust the locator as needed
 await expect(factorNameOnDetailsPage).toBeVisible();
+
+
   });
 });

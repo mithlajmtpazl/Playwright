@@ -68,9 +68,59 @@ test.describe('Adding a New Factor - Negative Test Cases', () => {
     console.log('Error message for oversized file is displayed.');
   });
 
-  test('should prevent saving a factor with existing factor name', async({page})=>{
-    console.log('Testing factor name uniqueness...');
-    await page.goto(`${baseUrl}/listoffactors`);
-  }
-  )
+
+  
+  test('Attempt to save a factor with an existing name (complete form)', async ({ page, request }) => {
+    let allSchema = [];
+    let usedSchema = [];
+    let availableSchemas = [];
+
+    
+    await page.goto(`${baseUrl}/addfactors`);
+  
+    // Step 1: Fetch existing factor names from the API
+    const response = await request.get(`${backendUrl}/getFactorsList?page=1&limit=10`);
+    const data = await response.json();
+  
+    expect(data).toHaveProperty('factorList');
+    expect(data.factorList.length).toBeGreaterThan(0);
+  
+    // Use the name of the first factor from the API response
+    const existingFactorName = data.factorList[0].factor_name;
+  
+    console.log(`Testing with existing factor name: ${existingFactorName}`);
+  
+    // Step 2: Fill out all required fields with valid data
+    await page.getByPlaceholder('Name').fill(existingFactorName);
+    await page.getByPlaceholder('Description').fill('Test Description');
+  
+    // Step 3: Select a schema
+    if (availableSchemas.length > 0) {
+      await page.getByText('Select the Schema').click();
+      await page.getByText(availableSchemas[0].value).click();
+    } else {
+      console.error('No schemas available for selection.');
+      test.fail('No schemas available. Test cannot proceed.');
+      return;
+    }
+  
+    // Step 4: Upload a file
+    const filePath = path.resolve(__dirname, '../../assets/Spec_sample_codes.xlsx');
+    await page.getByRole('button', { name: 'Upload' }).click();
+    await page.setInputFiles('#fileInput', filePath);
+  
+    // Verify file upload success
+    await page.getByRole('button', { name: 'Upload' }).click();
+    await expect(page.getByText('File uploaded successfully')).toBeVisible();
+  
+    // Step 5: Attempt to submit the form
+    await page.getByRole('button', { name: 'save Save' }).click();
+  
+    // Step 6: Verify error message for duplicate factor name
+    await expect(page.getByText('A factor with this name already exists')).toBeVisible();
+  
+    console.log('Error message displayed as expected for duplicate factor name');
+  });
+  
+
 })

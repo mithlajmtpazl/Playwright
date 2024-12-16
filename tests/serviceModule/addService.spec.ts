@@ -28,7 +28,7 @@ test.describe('Service Module - Add Service Functionality', () => {
 
 
       // Fill in the "Description" field
-      console.log('Filling in the Description field...');
+       console.log('Filling in the Description field...');
       const descriptionField = page.getByPlaceholder(' Enter  Your Description');
       await descriptionField.click();
       await descriptionField.fill(serviceDescription);
@@ -43,9 +43,15 @@ test.describe('Service Module - Add Service Functionality', () => {
       expect(isChecked).toBeTruthy();
       console.log(`Checkbox checked status: ${isChecked}`);
 
+
+
+
       // Add Query
       console.log('Adding Query...');
       await page.getByRole('img', { name: 'queryIcon' }).click();
+      
+
+      
       const queryInput = page.getByPlaceholder('Enter the Codes');
       await queryInput.fill('2');
       console.log('Query added with value: 2');

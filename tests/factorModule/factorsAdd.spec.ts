@@ -17,11 +17,11 @@ test.describe('Field Factors Module Tests', () => {
 
   // Fetch schemas before each test
   test.beforeEach(async ({ page }) => {
-    await page.route(`${backendUrl}/getAllSchemas`, async (route) => {
-      const response = await route.fetch();
-      const data = await response.json();
-      allSchema = data.schemas;
-      route.continue();
+      await page.route(`${backendUrl}/getAllSchemas`, async (route) => {
+        const response = await route.fetch();
+        const data = await response.json();
+        allSchema = data.schemas;
+        route.continue();
     });
 
     await page.route(`${backendUrl}/getSelectedInputSchema`, async (route) => {
@@ -190,6 +190,4 @@ test.describe('Field Factors Module Tests', () => {
     // Verify the new factor is visible in the list
     await expect(page.locator(`text=${sampleFactorName}`)).toBeVisible(); 
 });
-
-
 });

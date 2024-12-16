@@ -40,45 +40,77 @@ test.describe('Factors Listing and Search Functionality Tests', () => {
     });
 
     test('should validate the search functionality', async ({ page }) => {
-        const searchTerm = factorNamesFromApi[0]; // Use the first factor name as the search term
-
+        const searchTerm = factorNamesFromApi[0]; // Pick the first factor name
+        let expectedResults = [];
+    
+        // Intercept the API request for the search and capture the expected results
         await page.route(`${backendUrl}/factorSearch?search=${encodeURIComponent(searchTerm)}&page=1&limit=10`, async (route) => {
             const response = await route.fetch();
             const data = await response.json();
-
-            expect(data.factorList).not.toBeNull();
-            const expectedResults = data.factorList.map(factor => factor.factor_name);
-
+            console.log('Intercepted API Response:', data);
+    
+            // Validate the API response structure
+            expect(data).toHaveProperty('factorList');
+            expect(Array.isArray(data.factorList)).toBeTruthy();
+            expect(data.factorList.length).toBeGreaterThan(0);
+    
+            // Extract expected factor names
+            expectedResults = data.factorList.map((factor) => factor.factor_name);
+    
+            // Ensure each factor name includes the search term
             for (const factorName of expectedResults) {
                 expect(factorName.toLowerCase()).toContain(searchTerm.toLowerCase());
             }
-
+    
             route.continue();
         });
-
+    
+        // Navigate to the factors listing page
         await page.goto(`${baseUrl}/listoffactors`);
         await expect(page).toHaveURL(`${baseUrl}/listoffactors`);
-
-        await page.getByPlaceholder('Search Factors...').fill(searchTerm);
-        await page.getByRole('button', { name: 'Search' }).click();
-
-        for (const factorName of factorNamesFromApi) {
-            const factorLocator = page.locator(`text=${factorName}`);
+    
+        // Perform the search
+        const searchInput = page.getByPlaceholder('Search Factors...');
+        const searchButton = page.getByRole('button', { name: 'Search' });
+    
+        await searchInput.fill(searchTerm);
+        await searchButton.click();
+    
+        // Wait for search results to load (verify API call)
+        await page.waitForResponse((response) => 
+            response.url().includes('/factorSearch') && response.status() === 200
+        );
+    
+        // Validate the search results in the UI
+        for (const factorName of expectedResults) {
+            const factorLocator = await page.locator(`text=| ${factorName}`);
             await expect(factorLocator).toBeVisible();
-            console.log(`Verified: ${factorName} is visible in search results.`);
+            console.log(`Verified: ${factorName} is visible in the search results.`);
         }
-
-        await page.getByTestId('CloseIcon').click();
+    
+        // Validate there are no unexpected results displayed
+        const visibleFactors = await page.locator('.factor-item').allTextContents(); // Adjust selector to match your UI
+        for (const factor of visibleFactors) {
+            expect(factor.toLowerCase()).toContain(searchTerm.toLowerCase());
+        }
+    
+        // Clear the search and validate all factors are displayed again
+        const clearButton = page.getByTestId('CloseIcon');
+        await clearButton.click();
+    
+        // Wait for the full list to reload
         await page.waitForResponse(`${backendUrl}/getFactorsList?search=&page=1&limit=10`);
-
+    
+        // Validate all factors are listed again
         for (const factorName of factorNamesFromApi) {
             const factorLocator = page.locator(`text=${factorName}`);
             await expect(factorLocator).toBeVisible();
             console.log(`Verified: ${factorName} is visible after clearing the search.`);
         }
-
+    
         console.log('Search functionality validated successfully.');
     });
+    
 
     test('should validate code ranges in the UI', async ({ page, request }) => {
         const factors = await fetchFactors(request);
