@@ -104,5 +104,50 @@ test.describe('Duplicate Name Test for Factors', () => {
   
     console.log('Duplicate factor name test passed successfully.');
   });
-  
+
+
+  test('should display an error when expiry date is earlier than start date', async ({ page }) => {
+    // Navigate to the add factors page
+    await page.goto(`${baseUrl}/addfactors`);
+
+    // Step 1: Fill required fields
+    const sampleFactorName = `InvalidDateFactor_${Date.now()}`;
+    await page.getByPlaceholder('Name').fill(sampleFactorName);
+    await page.getByPlaceholder('Description').fill('Test Description for invalid date');
+
+    // Step 2: Select a schema
+    if (availableSchemas.length > 0) {
+        await page.getByText('Select the Schema').click();
+        await page.getByText(availableSchemas[0].value).click();
+    } else {
+        console.error('No schemas available for selection.');
+        test.fail('No schemas available. Test cannot proceed.');
+        return;
+    }
+
+    // Step 3: Upload a file
+    const filePath = path.resolve(__dirname, '../../assets/Spec_sample_codes.xlsx');
+    await page.getByRole('button', { name: 'Upload' }).click();
+    await page.setInputFiles('#fileInput', filePath);
+
+    // Verify file upload success
+    await page.getByRole('button', { name: 'Upload' }).click();
+    await expect(page.getByText('File uploaded successfully')).toBeVisible();
+
+    // Step 4: Set invalid dates
+    const invalidStartDate = '2024-12-31'; // Future date
+    const invalidExpiryDate = '2024-12-01'; // Earlier than start date
+
+    await page.locator('input[name="effective_from_date"]').fill(invalidStartDate);
+    await page.locator('input[name="effective_to_date"]').fill(invalidExpiryDate);
+
+    // Step 5: Submit the form
+    await page.getByRole('button', { name: 'save Save' }).click();
+
+    // Step 6: Validate the error message
+    const errorMessage = await page.locator('text=Effective to date should be greater than effective from date'); // Adjustthe actual error message
+    await expect(errorMessage).toBeVisible();
+
+    console.log('Verified: Error message is displayed for invalid date selection.');
+});
 });
