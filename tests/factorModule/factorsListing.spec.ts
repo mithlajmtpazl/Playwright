@@ -117,6 +117,7 @@ test.describe('Factors Listing and Search Functionality Tests', () => {
 
         await page.goto(`${baseUrl}/listoffactors`);
         await expect(page).toHaveURL(`${baseUrl}/listoffactors`);
+        
 
         for (const factor of factors) {
             if (factor.factor_type === 'field') {
