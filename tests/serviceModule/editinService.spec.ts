@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const config = require('./../configureModule/config');
 
-test.describe('Service Editing Functional Tests', () => {
+test.describe('Service Editing Functional Tests ', () => {
     const baseUrl = config.baseUrl;
 
     test('Edit an existing service and verify changes', async ({ page }) => {
@@ -76,4 +76,10 @@ test.describe('Service Editing Functional Tests', () => {
             throw error; // Ensure test fails properly
         }
     });
+
+
+    test('validate add rule',async({page})=>{
+    })
+
+
 });
