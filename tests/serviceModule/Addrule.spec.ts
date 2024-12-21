@@ -348,7 +348,4 @@ test.describe('Service Module - Testing', () => {
             throw error; // Ensure test fails properly
         }
     });
-    
-    
-
 });
