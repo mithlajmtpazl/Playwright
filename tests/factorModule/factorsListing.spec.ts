@@ -17,7 +17,7 @@ test.describe('Factors Listing and Search Functionality Tests', () => {
 
         const data = await response.json();
         expect(data.factorList).not.toBeNull();
-        return data.factorList;
+        return data.factorList;//
     };
 
     test.beforeAll(async ({ request }) => {
