@@ -15,7 +15,7 @@ test.describe('Factors Listing and Search Functionality Tests', () => {
         const response = await request.get(`${backendUrl}/getFactorsList?search=${search}&page=${page}&limit=${limit}`);
         expect(response.ok()).toBeTruthy(); // Ensure the API call is successful
 
-        const data = await response.json();
+        const data = await response.json();//
         expect(data.factorList).not.toBeNull();
         return data.factorList;//
     };
