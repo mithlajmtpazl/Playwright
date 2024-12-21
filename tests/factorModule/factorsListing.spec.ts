@@ -26,7 +26,7 @@ test.describe('Factors Listing and Search Functionality Tests', () => {
         expect(factorNamesFromApi.length).toBeGreaterThan(0);
     });
 
-    test('should display factors from API in the UI', async ({ page }) => {
+    test('TC-001 - should display factors from API in the UI', async ({ page }) => {
         await page.goto(`${baseUrl}/listoffactors`);
         await expect(page).toHaveURL(`${baseUrl}/listoffactors`);
 
@@ -39,7 +39,7 @@ test.describe('Factors Listing and Search Functionality Tests', () => {
         console.log('All factors are displayed correctly in the UI.');
     });
 
-    test('should validate the search functionality', async ({ page }) => {
+    test('TC-004 - should validate the search functionality', async ({ page }) => {
         const searchTerm = factorNamesFromApi[0]; // Pick the first factor name
         let expectedResults = [];
     
@@ -112,7 +112,7 @@ test.describe('Factors Listing and Search Functionality Tests', () => {
     });
     
 
-    test('should validate code ranges in the UI', async ({ page, request }) => {
+    test('TC-1122 - should validate code ranges in the UI', async ({ page, request }) => {
         const factors = await fetchFactors(request);
 
         await page.goto(`${baseUrl}/listoffactors`);
@@ -135,7 +135,7 @@ test.describe('Factors Listing and Search Functionality Tests', () => {
         console.log('Code ranges validation completed successfully.');
     });
 
-    test('should validate factor enable/disable functionality', async ({ page, request }) => {
+    test('TC-005 -  should validate factor enable/disable functionality', async ({ page, request }) => {
         const factors = await fetchFactors(request);
 
         await page.goto(`${baseUrl}/listoffactors`);

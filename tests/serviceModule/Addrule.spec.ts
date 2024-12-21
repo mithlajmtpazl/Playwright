@@ -104,31 +104,41 @@ test.describe('Service Module - Testing', () => {
 
             // **9. Validate Service Details**
             console.log('Validating service details...');
-            await page.getByRole('img', { name: 'queryIcon' }).click();
+            await page.getByRole('img', { name: 'queryIcon' }).first().click();
             await page.waitForTimeout(1000); // Ensure modal is open
+
+
+
 
             // **10. Validate Rules and Factors**
             console.log('Validating rules and factors...');
             for (let index = 0; index < factorTypes.length; index++) {
                 const factorType = factorTypes[index];
-
+            
                 // Validate Factor Type
                 console.log(`Validating factor ${factorType.factor_name}...`);
-                let factorDropDown = await page.locator(`#FactorsDropdown`).nth(index);
-                factorDropDown.value === factorType.factor_name
-
-                // // Validate Factor Codes
+                const factorDropDown = await page.locator(`#FactorsDropdown`).nth(index);
+                const factorDropDownValue = await factorDropDown.inputValue(); // Retrieve the value of the dropdown
+                await expect(factorDropDownValue).toBe(factorType.factor_type_id.toString()); // Assert using Playwright's expect
+                console.log(`Factor dropdown value matches: ${factorDropDownValue}`);
+            
+                // Validate Factor Codes
                 const codesLocator = await page.getByPlaceholder('Enter the Codes').nth(index); // Assumes codes are displayed in text format
-                codesLocator.value == factorType.factor_type_id
-                // await expect(codesLocator).toBeVisible();
-                // console.log(`Codes for factor ${factorType.factor_name} are displayed correctly.`);
+                const codesLocatorValue = await codesLocator.inputValue(); // Retrieve the value of the input field
+                await expect(codesLocatorValue).toBe("1,2,3".toString()); // Assert using Playwright's expect
+                console.log(`Codes for factor ${factorType.factor_name} are displayed correctly: ${codesLocatorValue}`);
             }
+            
             console.log('Rules and factors validation successful!');
         } catch (error) {
             console.error('Test failed with error:', error);
             throw error; // Ensure test fails properly
         }
     });
+
+    test('ensure valid codes can be uploaded and displayed', ({page}) => {
+
+    })
 
 
 });

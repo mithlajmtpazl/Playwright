@@ -80,6 +80,18 @@ test.describe('Field Factors Module Tests', () => {
 
     // Verify the new factor is visible in the list
     await expect(page.locator(`text=${sampleFactorName}`)).toBeVisible();
+
+    const response = await page.request.get(`${backendUrl}/getFactorsList?search=&page=1&limit=10`);
+    expect(response.ok()).toBeTruthy(); // Ensure the response status is 200 or OK
+const responseData = await response.json();
+
+expect(responseData.message).toBe('Fetching the factor list is successful');
+const factors = responseData.factorList
+expect(factors).toContainEqual(
+  expect.objectContaining({
+    factor_name: sampleFactorName,
+  })
+);
   });
 
   // Individual Component Test: File Upload
@@ -189,5 +201,17 @@ test.describe('Field Factors Module Tests', () => {
 
     // Verify the new factor is visible in the list
     await expect(page.locator(`text=${sampleFactorName}`)).toBeVisible(); 
+
+        const response1 = await page.request.get(`${backendUrl}/getFactorsList?search=&page=1&limit=10`);
+    expect(response1.ok()).toBeTruthy(); // Ensure the response1 status is 200 or OK
+const responseData = await response1.json();
+
+expect(responseData.message).toBe('Fetching the factor list is successful');
+const factors = responseData.factorList
+expect(factors).toContainEqual(
+  expect.objectContaining({
+    factor_name: sampleFactorName,
+  })
+);
 });
 });

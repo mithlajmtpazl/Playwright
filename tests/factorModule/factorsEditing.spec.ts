@@ -10,8 +10,8 @@ const config = require('./../configureModule/config');
 test.describe('Factors Editing Functional Tests', () => {
   const baseUrl = config.baseUrl;
   const backendUrl = config.backendUrl;
-  let fieldFactors = [];
-  let formulaFactors = [];
+    let fieldFactors = [];
+    let formulaFactors = [];
 
   // Fetch factors data before each test
   test.beforeEach(async ({ request }) => {
@@ -28,7 +28,7 @@ test.describe('Factors Editing Functional Tests', () => {
   });
 
   // Test for editing field factors
-  test('Edit field factors and verify uploaded data', async ({ page }) => {
+  test('Edit field factors and verify uploaded data', async ({ page,request }) => {
     console.log('Navigating to field factors page...');
     await page.goto(`${baseUrl}/listoffactors`, { timeout: 15000 });
 
@@ -59,7 +59,7 @@ test.describe('Factors Editing Functional Tests', () => {
   });
 
   // Test for editing formula factors
-  test('Edit formula factors and navigate to details page', async ({ page }) => {
+  test('Edit formula factors and navigate to details page', async ({ page,request }) => {
     console.log('Navigating to formula factors page...');
     await page.goto(`${baseUrl}/listoffactors`, { timeout: 15000 });
 
@@ -80,6 +80,33 @@ test.describe('Factors Editing Functional Tests', () => {
 const factorNameOnDetailsPage = page.locator('text=' + factorName); // Adjust the locator as needed
 await expect(factorNameOnDetailsPage).toBeVisible();
 
+
+
+console.log('Clicking on the first formula edit icon...');
+const formulaEditIcon = await page.locator('#formulaEditIcon').first();
+await expect(formulaEditIcon).toBeVisible({ timeout: 5000 });
+await formulaEditIcon.click();
+
+// Click on the dropdown with ID "params-dropdown1"
+console.log('Clicking on the parameters dropdown...');
+const paramsDropdown = await page.locator('#params-dropdown1').first();
+await expect(paramsDropdown).toBeVisible({ timeout: 5000 });
+await paramsDropdown.click();
+
+  // Log data for debugging purposes
+
+  console.log('Waiting for dropdown options to appear...');
+const dropdownOptions = await page.locator('params-options'); // Replace with the actual class or locator of the dropdown options
+
+// Click on the first available option
+console.log('Clicking on the first available option...');
+await dropdownOptions.click();
+
+console.log('Successfully selected an option from the dropdown.');
+
+
+
+console.log('Completed editing formula factors.');
 
   });
 });
