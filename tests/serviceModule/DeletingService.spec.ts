@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { waitForDebugger } from 'inspector';
 const config = require('./../configureModule/config');
 
-test.describe('Delete One Component', () => {
+test.describe('Delete One service', () => {
     const baseUrl = config.baseUrl;
     const backendUrl = config.backendUrl;
 
