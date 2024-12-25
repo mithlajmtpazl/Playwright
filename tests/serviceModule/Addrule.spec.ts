@@ -389,5 +389,50 @@ test.describe('Service Module - Testing', () => {
             console.error('An error occurred:', err);
         }
     });
+
+
+
+
+
+    
+    test('uploading of codes works perfectly and save',async ({page}) => {
+        const uniqueName = `RuleTest-${Date.now()}`; // Unique name for each test
+        const serviceDescription = 'Test Description';
+
+        let serviceID;
+    
+        try {
+            // **1. Navigate to Add Service Page**
+            console.log('Navigating to Add Service page...');
+            await page.goto(`${config.baseUrl}/addservice`, { timeout: 15000 });
+            await expect(page).toHaveURL(`${config.baseUrl}/addservice`);
+            console.log('Successfully reached Add Service page.');
+    
+            // **2. Fill Service Name and Description**
+            console.log('Filling Name and Description...');
+            await page.getByPlaceholder('Name').fill(uniqueName);
+            await page.locator('#ServiceDescription').fill(serviceDescription);
+    
+            // Retrieve the Service ID
+            serviceID = await page.getByPlaceholder('Id').inputValue();
+            console.log(`Service ID retrieved: ${serviceID}`);
+    
+            // **3. Open Query Modal for Factors**
+            console.log('Opening Query modal...');
+            await page.getByRole('img', { name: 'queryIcon' }).click();
+            await page.waitForTimeout(1000); // Ensure modal is open
+            console.log('Query modal opened successfully.');
+
+            await page.getByRole('button', { name: '⋮' }).click();
+            await page.getByText('Upload').click()           // await page.locator('div').filter({ hasText: /^Save$/ }).click()
+
+
+            
+
+        } catch (err) {
+            console.error('An error occurred:', err);
+        }
+
+    })
     
 });
