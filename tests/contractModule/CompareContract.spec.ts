@@ -50,7 +50,7 @@ test.describe('Contract Compare Module Test', () => {
       if (service.components && service.components.length > 0) {
         for (const component of service.components) {
           // Check if the component name is visible
-          const componentLocator = page.locator(`text=${component.component_name}`);
+          const componentLocator = await page.locator(`text=${component.component_name}`);
           console.log(`Checking component: ${component.component_name}`);
           await expect(componentLocator).toBeVisible();
         }
@@ -187,10 +187,5 @@ test.describe('Contract Compare Module Test', () => {
   
     console.log(`All dropdowns for contract "${firstContract.name}" retain selected values after refresh.`);
   });
-  
-  
-  
-  
-  
   
 });
