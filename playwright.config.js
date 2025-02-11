@@ -11,6 +11,9 @@ const { defineConfig, devices } = require('@playwright/test');
  * @see https://playwright.dev/docs/test-configuration
  */
 module.exports = defineConfig({
+  globalSetup: './global-setup.js', // Path to your global setup script
+
+
   testDir: './tests',
   /* Run tests in files in parallel */
   fullyParallel: false,
@@ -23,16 +26,23 @@ module.exports = defineConfig({
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+  // use: {
+  //   headless: false, // Run browsers in non-headless mode
+  //   slowMo: 400, 
+
+  //   // video: 'on', // Always record videos
+  //   /* Base URL to use in actions like `await page.goto('/')`. */
+  //   // baseURL: 'http://127.0.0.1:3000',
+
+  //   /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+  //   trace: 'on-first-retry',
+  // },
+
   use: {
+    storageState: 'auth.json', // Use the saved authentication state
     headless: false, // Run browsers in non-headless mode
-    slowMo: 400, 
-
-    // video: 'on', // Always record videos
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    // baseURL: 'http://127.0.0.1:3000',
-
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
+    slowMo: 400, // Slow down execution by 400ms
+    trace: 'on-first-retry', // Collect trace when retrying the failed test
   },
 
   /* Configure projects for major browsers */

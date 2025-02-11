@@ -62,7 +62,7 @@ test.describe('Duplicate Name Test for Factors', () => {
   });
 
   // Test for duplicate factor name
-  test('Duplicate factor name submission test', async ({ page }) => {
+  test('TC-020 Duplicate factor name submission test', async ({ page }) => {
     // Ensure `existingFactorName` is available
     if (!existingFactorName) {
       console.error('Existing factor name is not available. Test cannot proceed.');
@@ -106,7 +106,7 @@ test.describe('Duplicate Name Test for Factors', () => {
   });
 
 
-  test('should display an error when expiry date is earlier than start date', async ({ page }) => {
+  test('TC-021 should display an error when expiry date is earlier than start date', async ({ page }) => {
     // Navigate to the add factors page
     await page.goto(`${baseUrl}/addfactors`);
 

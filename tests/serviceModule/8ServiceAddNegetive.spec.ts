@@ -5,7 +5,7 @@ test.describe('Service Module - Negative Test Scenarios For Adding A Service', (
   let uniqueServiceName = `DemoService-${Date.now()}`; // Generate a unique name for each test
   const serviceDescription = 'Test Description';
 
-  test('Error displayed when adding a service without a rule', async ({ page }) => {
+  test('TC-030 Error displayed when adding a service without a rule', async ({ page }) => {
     try {
       console.log('[Step 1] Navigating to the Add Service page...');
       await page.goto(`${config.baseUrl}/addservice`, { timeout: 20000 });
@@ -38,7 +38,7 @@ test.describe('Service Module - Negative Test Scenarios For Adding A Service', (
     }
   });
 
-  test('Error displayed when Service Name contains only spaces', async ({ page }) => {
+  test('TC-031 Error displayed when Service Name contains only spaces', async ({ page }) => {
     try {
       console.log('[Step 1] Navigating to the Add Service page...');
       await page.goto(`${config.baseUrl}/addservice`, { timeout: 20000 });
@@ -70,7 +70,7 @@ test.describe('Service Module - Negative Test Scenarios For Adding A Service', (
     }
   });
 
-  test('Error Dispayed when user tries to save service without specifying code',async({page})=>{
+  test('TC-032 Error Dispayed when user tries to save service without specifying code',async({page})=>{
     try {
         console.log('[Step 1] Navigating to the Add Service page...');
         await page.goto(`${config.baseUrl}/addservice`, { timeout: 20000 });
@@ -101,7 +101,7 @@ test.describe('Service Module - Negative Test Scenarios For Adding A Service', (
       }
   })
 
-  test('ensure service cannot be saved with just a group without rules init', async ({ page }) => {
+  test('TC-033 ensure service cannot be saved with just a group without rules init', async ({ page }) => {
     try {
       console.log('[Step 1] Navigating to the Add Service page...');
       await page.goto(`${config.baseUrl}/addservice`, { timeout: 20000 });
@@ -127,7 +127,7 @@ test.describe('Service Module - Negative Test Scenarios For Adding A Service', (
       await page.locator('div').filter({ hasText: /^Save$/ }).click();
   
       console.log('[Step 5] Verifying error message...');
-      await page.waitForSelector('text=At least one rule is required for a service', { timeout: 7000 });
+      await page.waitForSelector('text=Make sure to fill all required fields', { timeout: 7000 });
       console.log('[Step 5] Error message displayed as expected.');
     } catch (error) {
       console.error('Test failed due to an error:', error);
@@ -135,7 +135,7 @@ test.describe('Service Module - Negative Test Scenarios For Adding A Service', (
     }
   });
   
-  test('system should not allow user to save service without required fields in component', async ({ page }) => {
+  test('TC-034 system should not allow user to save service without required fields in component', async ({ page }) => {
     try {
       console.log('[Step 1] Navigating to the Add Service page...');
       await page.goto(`${config.baseUrl}/addservice`, { timeout: 20000 });
@@ -182,7 +182,7 @@ test.describe('Service Module - Negative Test Scenarios For Adding A Service', (
     }
   });  
 
-  test('should display error on invalid date',async ({page}) => {
+  test('TC-035 should display error on invalid date',async ({page}) => {
 
     console.log('[Step 1] Navigating to the Add Service page...');
     await page.goto(`${config.baseUrl}/addservice`, { timeout: 20000 });

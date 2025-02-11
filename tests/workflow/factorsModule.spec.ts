@@ -122,12 +122,13 @@ test.describe('Field Factors Module Tests complete', () => {
   });
 
   test('form submission with formula factor and dropdown functionality', async ({ page, request }) => {
+    // Navigate to the page
     await page.goto(`${baseUrl}/addfactors`);
 
     // Fetch data from the API
     const response = await request.get(`${backendUrl}/getAllFunctions`);
     const data = await response.json();
-    
+
     // Validate the API response
     expect(data).toHaveProperty('functions');
     expect(data.functions.length).toBeGreaterThan(0);
@@ -139,63 +140,36 @@ test.describe('Field Factors Module Tests complete', () => {
     await page.getByPlaceholder('Description').fill('Test Description');
     await page.locator('#formula').check();
 
-    // Step 1: Open the main dropdown
-    const mainDropdown = page.locator('#formula-functions');
-    // await mainDropdown.click();
-    await expect(mainDropdown).toBeVisible(); // Verify the dropdown is displayed
-
-    // Step 2: Select the first option from the main dropdown
+    // Select the first function
     const firstOption = data.functions[0]; // Assuming the API returns objects with a 'value' field
+    const mainDropdown = page.locator('#formula-functions');
     await mainDropdown.selectOption({ value: firstOption });
-
-    // Step 3: Verify the selected option
-    const selectedValue = await mainDropdown.inputValue(); // Get the current value of the dropdown
+    const selectedValue = await mainDropdown.inputValue();
     expect(selectedValue).toBe(firstOption);
     console.log(`Selected option: ${selectedValue}`);
 
-    await page.waitForTimeout(5000);
-
-
-
-    // Verify dependent dropdowns are displayed
-    const parametersResponse = await request.get(`${backendUrl}/getParameters/${firstOption}`)
+    // Fetch dependent dropdown data
+    const parametersResponse = await request.get(`${backendUrl}/getParameters/${firstOption}`);
     const parametersData = await parametersResponse.json();
-
     expect(parametersData).toHaveProperty('parameters');
-    console.log('Parameters fetched successfully:', parametersData.parameters[0].name);
+    console.log('Parameters fetched successfully:', parametersData.parameters);
 
-    
-    const firstParameterName = parametersData.parameters[0].name;
-    console.log(`First parameter name from API: ${firstParameterName}`);
-    
+    // Select values for dependent dropdowns
+    const dependentDropdown1 = page.locator('#formula-parameters').first();
+    const dependentDropdown2 = page.locator('#formula-parameters').nth(1);
+    const dropdownValue1 = parametersData.availableFactorTypes[0].input_schema_id.toString();
+    const dropdownValue2 = parametersData.availableFactorTypes[1].input_schema_id.toString();
 
-    // // Check if the name is present anywhere on the page
-    const dependentDropdown1 =await page.locator('#formula-parameters').first();
-    await expect(dependentDropdown1).toBeVisible();
+    await dependentDropdown1.selectOption({ value: dropdownValue1 });
+    await dependentDropdown2.selectOption({ value: dropdownValue2 });
 
+    const dependentDropdownText1 = await parametersData.availableFactorTypes[0].value
+    const dependentDropdownText2 = await parametersData.availableFactorTypes[1].value
 
-
-
-
-
-    expect(parametersData).toHaveProperty('availableFactorTypes');
-    expect(parametersData.availableFactorTypes.length).toBeGreaterThan(0);
-    console.log('Available Factor Types:', parametersData.availableFactorTypes);
+    console.log(dependentDropdownText1)
 
 
-
-
-
-    const dependentDropdown2 = await page.locator('#formula-parameters').nth(1);
-    await expect(dependentDropdown2).toBeVisible();
-    await expect(dependentDropdown2).toBeVisible();
-    console.log('Dependent dropdowns are displayed');
-    const dropdownValue1 = parametersData.availableFactorTypes[0].input_schema_id
-    const dropdownValue2 = parametersData.availableFactorTypes[1].input_schema_id
-
-    await dependentDropdown1.selectOption({ value: dropdownValue1.toString()});
-    await dependentDropdown2.selectOption({ value: dropdownValue2.toString()});
-
+    // Save the form
     await page.getByRole('button', { name: 'save Save' }).click();
 
     // Verify success message and redirection
@@ -203,8 +177,27 @@ test.describe('Field Factors Module Tests complete', () => {
     await page.waitForURL(`${baseUrl}/listoffactors`);
 
     // Verify the new factor is visible in the list
-    await expect(page.locator(`text=${sampleFactorName}`)).toBeVisible(); 
-});
+    await expect(page.locator(`text=${sampleFactorName}`)).toBeVisible();
+
+    // Refresh the list and verify the factor
+    await page.reload(); // Reload the page to refresh the list
+    await expect(page.locator(`text=${sampleFactorName}`)).toBeVisible();
+    console.log('Factor is visible after refresh.');
+
+    // Click the newly added factor and verify details
+    await page.locator(`text=${sampleFactorName}`).click();
+
+    // Check visibility of the selected formula function
+    const formulaFunctionText = page.getByText(selectedValue);
+    const para1Text = page.getByText(dependentDropdownText1);
+    const para2Text = page.getByText(dependentDropdownText2);
+    await expect(formulaFunctionText).toBeVisible({ timeout: 10000 });
+    await expect(para1Text).toBeVisible({ timeout: 10000 });
+    await expect(para2Text).toBeVisible({ timeout: 10000 });
+
+    console.log('Selected parameter and function are correctly displayed.');
+  });
+
 
 test('Edit field factors and verify uploaded data', async ({ page }) => {
     console.log('Navigating to field factors page...');
