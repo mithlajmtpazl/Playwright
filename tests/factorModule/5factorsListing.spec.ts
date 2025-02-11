@@ -1,5 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const config = require('./../configureModule/config');
+const fs = require('fs');
+
 
 test.use({
     actionTimeout: 5000, // Timeout of 5 seconds for each action
@@ -9,11 +11,17 @@ test.describe('Factors Listing and Search Functionality Tests', () => {
     const baseUrl = config.baseUrl;
     const backendUrl = config.backendUrl;
     let factorNamesFromApi = [];
-    let token = ''; // Placeholder for authentication token. Replace with actual token retrieval logic.
+    const tokenData = JSON.parse(fs.readFileSync('token.json', 'utf8'));
+    const token = tokenData.token;
 
     // Helper function to fetch factors from the API
     const fetchFactors = async (request, search = '', page = 1, limit = 10) => {
-        const response = await request.get(`${backendUrl}/getFactorsList?search=${search}&page=${page}&limit=${limit}`);
+        const response = await request.get(`${backendUrl}/getFactorsList?search=${search}&page=${page}&limit=${limit}`,{
+            headers: {
+                Authorization: `Bearer ${token}`,  // Include Bearer token in API request
+                'Content-Type': 'application/json',
+            },
+        });
         expect(response.ok()).toBeTruthy(); // Ensure the API call is successful
 
         const data = await response.json();//
@@ -21,13 +29,8 @@ test.describe('Factors Listing and Search Functionality Tests', () => {
         return data.factorList;//
     };
 
-    test.beforeAll(async ({ page,request }) => {
-         token = await page.evaluate(() => localStorage.getItem('token')); // Ensure this matches your app's token key
-        if (!token) {
-            console.error('Authentication token not found in localStorage.');
-            test.fail('No authentication token found. Test cannot proceed.');
-            return;
-        }
+    test.beforeAll(async ({ request }) => {
+     
         const factors = await fetchFactors(request);
         factorNamesFromApi = factors.map(factor => factor.factor_name);
         expect(factorNamesFromApi.length).toBeGreaterThan(0);
@@ -193,96 +196,113 @@ test.describe('Factors Listing and Search Functionality Tests', () => {
     //     console.log('Enabled/Disabled status validation completed successfully.');
     // });
 
-    test('TC-017 - should validate factor enable/disable functionality', async ({ page, request }) => {
-        const factors = await fetchFactors(request);
+    test('TC-017 Validate factor enable/disable functionality', async ({ page, request }) => {
+        console.log('Starting factor toggle validation test');
     
-        await page.goto(`${baseUrl}/listoffactors`);
-        await expect(page).toHaveURL(`${baseUrl}/listoffactors`);
-    
-        for (const factor of factors) {
-            const factorLocator = page.locator('section', { hasText: `| ${factor.factor_name}` });
-            const toggleButton = factorLocator.locator('img#enabled, img#disabled');
-            
-            // Helper function for retry mechanism
-            const retryToggle = async (expectedState, retries = 3) => {
-                for (let i = 0; i < retries; i++) {
-                    await toggleButton.click();
-    
-                    // Wait for the state to update
-                    await page.waitForTimeout(2000);
-    
-                    // Fetch updated state from backend
-                    const refreshedFactors = await fetchFactors(request);
-                    const refreshedFactor = refreshedFactors.find(f => f.factor_type_id === factor.factor_type_id);
-    
-                    if (refreshedFactor.enabled === expectedState) {
-                        return true;
-                    }
+        // Helper function to verify factor state
+        async function verifyFactorState(factorId, expectedState) {
+            const response = await request.get(`${backendUrl}/getFactorsList`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
                 }
-                return false;
-            };
-    
-            // Check the current state and toggle
-            const initialState = factor.enabled;
-            const expectedState = !initialState;
-    
-            // Retry toggle and validate backend state
-            const toggledSuccessfully = await retryToggle(expectedState);
-            expect(toggledSuccessfully).toBeTruthy(); // Fail test if toggle didn't succeed
-    
-            // Validate UI reflects the correct state
-            if (expectedState) {
-                await expect(factorLocator.locator('img#enabled')).toBeVisible();
-            } else {
-                await expect(factorLocator.locator('img#disabled')).toBeVisible();
-            }
-    
-            // Reload page and verify state persistence
-            await page.reload();
-    
-            const refreshedFactors = await fetchFactors(request);
-            const refreshedFactor = refreshedFactors.find(f => f.factor_type_id === factor.factor_type_id);
-    
-            expect(refreshedFactor.enabled).toBe(expectedState);
-    
-            if (expectedState) {
-                await expect(factorLocator.locator('img#enabled')).toBeVisible();
-            } else {
-                await expect(factorLocator.locator('img#disabled')).toBeVisible();
-            }
-    
-            console.log(`Validated enable/disable functionality for factor: ${factor.factor_name}`);
-    
-            // Toggle back to the initial state
-            const toggledBackSuccessfully = await retryToggle(initialState);
-            expect(toggledBackSuccessfully).toBeTruthy(); // Fail test if toggle back didn't succeed
-    
-            // Validate UI reflects the original state
-            if (initialState) {
-                await expect(factorLocator.locator('img#enabled')).toBeVisible();
-            } else {
-                await expect(factorLocator.locator('img#disabled')).toBeVisible();
-            }
-    
-            // Reload page and verify state persistence after toggling back
-            await page.reload();
-    
-            const finalRefreshedFactors = await fetchFactors(request);
-            const finalRefreshedFactor = finalRefreshedFactors.find(f => f.factor_type_id === factor.factor_type_id);
-    
-            expect(finalRefreshedFactor.enabled).toBe(initialState);
-    
-            if (initialState) {
-                await expect(factorLocator.locator('img#enabled')).toBeVisible();
-            } else {
-                await expect(factorLocator.locator('img#disabled')).toBeVisible();
-            }
-    
-            console.log(`Toggled back to the initial state for factor: ${factor.factor_name}`);
+            });
+            expect(response.ok()).toBeTruthy();
+            const data = await response.json();
+            const factor = data.factorList.find(f => f.factor_type_id === factorId);
+            return factor?.enabled === expectedState;
         }
     
-        console.log('Enable/disable functionality validation with repeated actions completed successfully.');
+        // Helper function to toggle with retry
+        async function toggleWithRetry(factorLocator, factorId, expectedState, maxRetries = 3) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                console.log(`Toggle attempt ${attempt} of ${maxRetries}`);
+                
+                // Click the toggle button
+                const toggleImg = factorLocator.locator(expectedState ? 'img#disabled' : 'img#enabled');
+                await toggleImg.click();
+                
+                // Wait for potential state change
+                await page.waitForTimeout(1000);
+                
+                // Verify state change in both UI and API
+                const stateVerified = await verifyFactorState(factorId, expectedState);
+                const correctImageVisible = await factorLocator
+                    .locator(expectedState ? 'img#enabled' : 'img#disabled')
+                    .isVisible();
+                    
+                if (stateVerified && correctImageVisible) {
+                    console.log('Toggle successful');
+                    return true;
+                }
+                
+                if (attempt < maxRetries) {
+                    console.log('Toggle unsuccessful, retrying...');
+                    await page.waitForTimeout(1000);
+                }
+            }
+            return false;
+        }
+    
+        try {
+            // Navigate to factors page
+            console.log('Navigating to factors list page');
+            await page.goto(`${baseUrl}/listoffactors`);
+            await expect(page).toHaveURL(`${baseUrl}/listoffactors`);
+    
+            // Get initial factors list
+            const factors = await fetchFactors(request);
+            console.log(`Found ${factors.length} factors to test`);
+    
+            // Test each factor
+            for (const factor of factors) {
+                console.log(`Testing factor: ${factor.factor_name}`);
+                
+                // Locate factor section
+                const factorLocator = page.locator('section', { 
+                    has: page.locator('h4', { hasText: `| ${factor.factor_name}` })
+                });
+                await expect(factorLocator).toBeVisible({ timeout: 5000 });
+    
+                // Store initial state
+                const initialState = factor.enabled;
+                console.log(`Initial state: ${initialState ? 'Enabled' : 'Disabled'}`);
+    
+                // Test sequence:
+                // 1. Toggle to opposite state
+                console.log('Toggling to opposite state...');
+                const toggleSuccess = await toggleWithRetry(
+                    factorLocator, 
+                    factor.factor_type_id, 
+                    !initialState
+                );
+                expect(toggleSuccess, 'Failed to toggle state').toBeTruthy();
+    
+                // 2. Reload page to verify persistence
+                console.log('Reloading page to verify persistence...');
+                await page.reload();
+                await expect(factorLocator.locator(!initialState ? 'img#enabled' : 'img#disabled'))
+                    .toBeVisible({ timeout: 5000 });
+    
+                // 3. Toggle back to original state
+                console.log('Toggling back to original state...');
+                const toggleBackSuccess = await toggleWithRetry(
+                    factorLocator, 
+                    factor.factor_type_id, 
+                    initialState
+                );
+                expect(toggleBackSuccess, 'Failed to toggle back to original state').toBeTruthy();
+    
+                // 4. Final state verification
+                const finalState = await verifyFactorState(factor.factor_type_id, initialState);
+                expect(finalState, 'Final state does not match initial state').toBeTruthy();
+    
+                console.log(`Successfully completed toggle test for: ${factor.factor_name}`);
+            }
+    
+        } catch (error) {
+            console.error('Test failed:', error);
+            throw error;
+        }
     });
-    
-    
 });
