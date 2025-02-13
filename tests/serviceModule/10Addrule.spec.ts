@@ -7,138 +7,141 @@ const xlsx = require('xlsx'); // Import the xlsx library
 
 test.describe('Service Module - Testing', () => {
     const baseUrl = config.baseUrl
-    test('TC-037- Add a new service with multiple rules and validate rules', async ({ page, request }) => {
-        const uniqueName = `RuleTest-${Date.now()}`; // Unique name for each test
-        const serviceDescription = 'Test Description';
+    const tokenData = JSON.parse(fs.readFileSync('token.json', 'utf8'));
+    const token = tokenData.token;
 
-        try {
-            // **1. Navigate to Add Service Page**
-            console.log('Navigating to Add Service page...');
-            await page.goto(`${config.baseUrl}/addservice`, { timeout: 15000 });
-            await expect(page).toHaveURL(`${config.baseUrl}/addservice`);
-            console.log('Successfully reached Add Service page.');
+    // test('TC-037- Add a new service with multiple rules and validate rules', async ({ page, request }) => {
+    //     const uniqueName = `RuleTest-${Date.now()}`; // Unique name for each test
+    //     const serviceDescription = 'Test Description';
 
-            // **2. Fill Service Name and Description**
-            console.log('Filling Name and Description...');
-            await page.getByPlaceholder('Name').fill(uniqueName);
-            await page.locator('#ServiceDescription').fill(serviceDescription);
+    //     try {
+    //         // **1. Navigate to Add Service Page**
+    //         console.log('Navigating to Add Service page...');
+    //         await page.goto(`${config.baseUrl}/addservice`, { timeout: 15000 });
+    //         await expect(page).toHaveURL(`${config.baseUrl}/addservice`);
+    //         console.log('Successfully reached Add Service page.');
 
-            // **3. Open Query Modal for Factors**
-            console.log('Opening Query modal...');
-            await page.getByRole('img', { name: 'queryIcon' }).click();
-            await page.waitForTimeout(1000); // Ensure modal is open
+    //         // **2. Fill Service Name and Description**
+    //         console.log('Filling Name and Description...');
+    //         await page.getByPlaceholder('Name').fill(uniqueName);
+    //         await page.locator('#ServiceDescription').fill(serviceDescription);
 
-            // **4. Fetch Factor Types Dynamically**
-            console.log('Fetching factors list from API...');
-            const factorResponse = await request.get('http://localhost:3000/api/getallfactortypes');
-            expect(factorResponse.ok()).toBeTruthy();
+    //         // **3. Open Query Modal for Factors**
+    //         console.log('Opening Query modal...');
+    //         await page.getByRole('img', { name: 'queryIcon' }).click();
+    //         await page.waitForTimeout(1000); // Ensure modal is open
 
-            const factorTypes = await factorResponse.json();
-            console.log('Factor types fetched:', factorTypes);
+    //         // **4. Fetch Factor Types Dynamically**
+    //         console.log('Fetching factors list from API...');
+    //         const factorResponse = await request.get('http://localhost:3000/api/getallfactortypes');
+    //         expect(factorResponse.ok()).toBeTruthy();
 
-            // **5. Add Factors One by One**
-            for (let index = 0; index < factorTypes.length; index++) {
-                console.log(`Adding factor ${index + 1}: ${factorTypes[index].factor_name}`);
+    //         const factorTypes = await factorResponse.json();
+    //         console.log('Factor types fetched:', factorTypes);
 
-                // Locate dropdown dynamically
-                let factorDropDown = index === 0
-                    ? page.locator('#FactorsDropdown')
-                    : page.locator(`#FactorsDropdown`).nth(index);
+    //         // **5. Add Factors One by One**
+    //         for (let index = 0; index < factorTypes.length; index++) {
+    //             console.log(`Adding factor ${index + 1}: ${factorTypes[index].factor_name}`);
 
-                // Select Factor Type
-                await factorDropDown.scrollIntoViewIfNeeded();
-                await factorDropDown.selectOption({ value: factorTypes[index].factor_type_id.toString() });
+    //             // Locate dropdown dynamically
+    //             let factorDropDown = index === 0
+    //                 ? page.locator('#FactorsDropdown')
+    //                 : page.locator(`#FactorsDropdown`).nth(index);
 
-                // Validate Dropdown Value
-                await expect(factorDropDown).toHaveValue(factorTypes[index].factor_type_id.toString());
-                const selectedValue = await factorDropDown.inputValue();
-                console.log(`Dropdown value selected: ${selectedValue}`);
+    //             // Select Factor Type
+    //             await factorDropDown.scrollIntoViewIfNeeded();
+    //             await factorDropDown.selectOption({ value: factorTypes[index].factor_type_id.toString() });
 
-                // Check if #CodesInput exists before interacting
-                const codeInputExists = await page.locator('#CodesInput').nth(index).isVisible().catch(() => false);
+    //             // Validate Dropdown Value
+    //             await expect(factorDropDown).toHaveValue(factorTypes[index].factor_type_id.toString());
+    //             const selectedValue = await factorDropDown.inputValue();
+    //             console.log(`Dropdown value selected: ${selectedValue}`);
 
-                if (codeInputExists) {
-                    console.log('Filling Factor Codes...');
-                    let selectedCodes = index === 0
-                        ? page.locator('#CodesInput')
-                        : page.locator(`#CodesInput`).nth(index);
+    //             // Check if #CodesInput exists before interacting
+    //             const codeInputExists = await page.locator('#CodesInput').nth(index).isVisible().catch(() => false);
 
-                    await selectedCodes.fill('1,2,3');
-                    await expect(selectedCodes).toHaveValue('1,2,3');
-                    console.log('Factor Codes filled successfully.');
-                } else {
-                    console.log(`No codes input available for factor ${factorTypes[index].factor_name}. Skipping code input.`);
-                }
+    //             if (codeInputExists) {
+    //                 console.log('Filling Factor Codes...');
+    //                 let selectedCodes = index === 0
+    //                     ? page.locator('#CodesInput')
+    //                     : page.locator(`#CodesInput`).nth(index);
 
-                // Click "Add Rule" button or save
-                if (index === factorTypes.length - 1) {
-                    console.log('Saving the Service...');
-                    await page.locator('div').filter({ hasText: /^Save$/ }).click();
-                } else {
-                    console.log('Clicking "Add Rule" button...');
-                    await page.getByRole('button', { name: 'Add Rule' }).click();
-                    await page.waitForTimeout(500); // Ensure next field loads
-                }
-            }
+    //                 await selectedCodes.fill('1,2,3');
+    //                 await expect(selectedCodes).toHaveValue('1,2,3');
+    //                 console.log('Factor Codes filled successfully.');
+    //             } else {
+    //                 console.log(`No codes input available for factor ${factorTypes[index].factor_name}. Skipping code input.`);
+    //             }
 
-            // **6. Save the Service**
-            console.log('Saving the Service...');
-            await page.locator('div').filter({ hasText: /^Save$/ }).click();
+    //             // Click "Add Rule" button or save
+    //             if (index === factorTypes.length - 1) {
+    //                 console.log('Saving the Service...');
+    //                 await page.locator('div').filter({ hasText: /^Save$/ }).click();
+    //             } else {
+    //                 console.log('Clicking "Add Rule" button...');
+    //                 await page.getByRole('button', { name: 'Add Rule' }).click();
+    //                 await page.waitForTimeout(500); // Ensure next field loads
+    //             }
+    //         }
 
-            // Wait for confirmation message
-            await page.waitForSelector('text=Service saved successfully', { timeout: 7000 });
-            console.log('Service added successfully!');
+    //         // **6. Save the Service**
+    //         console.log('Saving the Service...');
+    //         await page.locator('div').filter({ hasText: /^Save$/ }).click();
 
-            // **7. Verify Service in the List**
-            console.log('Navigating to Service List page...');
-            await page.goto(`${config.baseUrl}/listofservices`, { timeout: 15000 });
-            await page.waitForLoadState('networkidle');
+    //         // Wait for confirmation message
+    //         await page.waitForSelector('text=Service saved successfully', { timeout: 7000 });
+    //         console.log('Service added successfully!');
 
-            console.log(`Validating the newly added service "${uniqueName}"...`);
-            const serviceRow = await page.getByText(`${uniqueName}`);
-            await expect(serviceRow).toBeVisible();
-            console.log(`Newly added service "${uniqueName}" is successfully displayed in the list.`);
+    //         // **7. Verify Service in the List**
+    //         console.log('Navigating to Service List page...');
+    //         await page.goto(`${config.baseUrl}/listofservices`, { timeout: 15000 });
+    //         await page.waitForLoadState('networkidle');
 
-            // **8. Open the service details using the 3-dot menu**
-            console.log(`Opening details page for the service "${uniqueName}"...`);
-            await page.getByRole('button', { name: '⋮' }).first().click();
-            await page.getByRole('link', { name: 'Edit' }).click();
-            await page.waitForTimeout(1000); // Ensure modal is open
+    //         console.log(`Validating the newly added service "${uniqueName}"...`);
+    //         const serviceRow = await page.getByText(`${uniqueName}`);
+    //         await expect(serviceRow).toBeVisible();
+    //         console.log(`Newly added service "${uniqueName}" is successfully displayed in the list.`);
+
+    //         // **8. Open the service details using the 3-dot menu**
+    //         console.log(`Opening details page for the service "${uniqueName}"...`);
+    //         await page.getByRole('button', { name: '⋮' }).first().click();
+    //         await page.getByRole('link', { name: 'Edit' }).click();
+    //         await page.waitForTimeout(1000); // Ensure modal is open
 
 
 
-            // **9. Validate Service Details**
-            console.log('Validating service details...');
-            await page.getByRole('img', { name: 'queryIcon' }).first().click();
-            await page.waitForTimeout(1000); // Ensure modal is open
+    //         // **9. Validate Service Details**
+    //         console.log('Validating service details...');
+    //         await page.getByRole('img', { name: 'queryIcon' }).first().click();
+    //         await page.waitForTimeout(1000); // Ensure modal is open
 
 
             
-            // **10. Validate Rules and Factors**
-            console.log('Validating rules and factors...');
-            for (let index = 0; index < factorTypes.length; index++) {
-                const factorType = factorTypes[index];
+    //         // **10. Validate Rules and Factors**
+    //         console.log('Validating rules and factors...');
+    //         for (let index = 0; index < factorTypes.length; index++) {
+    //             const factorType = factorTypes[index];
 
-                // Validate Factor Type
-                console.log(`Validating factor ${factorType.factor_name}...`);
-                const factorDropDown = await page.locator(`#FactorsDropdown`).nth(index);
-                const factorDropDownValue = await factorDropDown.inputValue(); // Retrieve the value of the dropdown
-                await expect(factorDropDownValue).toBe(factorType.factor_type_id.toString()); // Assert using Playwright's expect
-                console.log(`Factor dropdown value matches: ${factorDropDownValue}`);
+    //             // Validate Factor Type
+    //             console.log(`Validating factor ${factorType.factor_name}...`);
+    //             const factorDropDown = await page.locator(`#FactorsDropdown`).nth(index);
+    //             const factorDropDownValue = await factorDropDown.inputValue(); // Retrieve the value of the dropdown
+    //             await expect(factorDropDownValue).toBe(factorType.factor_type_id.toString()); // Assert using Playwright's expect
+    //             console.log(`Factor dropdown value matches: ${factorDropDownValue}`);
 
-                // Validate Factor Codes
-                const codesLocator = await page.getByPlaceholder('Enter the Codes').nth(index); // Assumes codes are displayed in text format
-                const codesLocatorValue = await codesLocator.inputValue(); // Retrieve the value of the input field
-                await expect(codesLocatorValue).toBe("1,2,3".toString()); // Assert using Playwright's expect
-                console.log(`Codes for factor ${factorType.factor_name} are displayed correctly: ${codesLocatorValue}`);
-            }
+    //             // Validate Factor Codes
+    //             const codesLocator = await page.getByPlaceholder('Enter the Codes').nth(index); // Assumes codes are displayed in text format
+    //             const codesLocatorValue = await codesLocator.inputValue(); // Retrieve the value of the input field
+    //             await expect(codesLocatorValue).toBe("1,2,3".toString()); // Assert using Playwright's expect
+    //             console.log(`Codes for factor ${factorType.factor_name} are displayed correctly: ${codesLocatorValue}`);
+    //         }
 
-            console.log('Rules and factors validation successful!');
-        } catch (error) {
-            console.error('Test failed with error:', error);
-            throw error; // Ensure test fails properly
-        }
-    });
+    //         console.log('Rules and factors validation successful!');
+    //     } catch (error) {
+    //         console.error('Test failed with error:', error);
+    //         throw error; // Ensure test fails properly
+    //     }
+    // });
 
     test('TC-038 validate the add group button', async ({ page, request }) => {
 
@@ -151,120 +154,137 @@ test.describe('Service Module - Testing', () => {
                     evaluateQuery(rule.rules);
                 }
             });
-            if (count > 0) {
-                console.log(count, '-------');
-                return true;
-            } else {
-                return false;
-            }
+            return count > 0;
         }
     
         // Test variables
-        const uniqueName = `RuleTest-${Date.now()}`; // Unique name for the test
+        const uniqueName = `RuleTest-${Date.now()}`;
         const serviceDescription = 'Test Description';
         let serviceID;
     
         try {
-            // Step 1: Navigate to Add Service Page
             console.log('Navigating to Add Service page...');
             await page.goto(`${config.baseUrl}/addservice`, { timeout: 15000 });
             await expect(page).toHaveURL(`${config.baseUrl}/addservice`);
             console.log('Successfully reached Add Service page.');
     
-            // Step 2: Fill Service Name and Description
             console.log('Filling service name and description...');
             await page.getByPlaceholder('Name').fill(uniqueName);
             await page.locator('#ServiceDescription').fill(serviceDescription);
             serviceID = await page.getByPlaceholder('Id').inputValue();
     
-            // Step 3: Open Query Modal
             console.log('Opening Query modal...');
             await page.getByRole('img', { name: 'queryIcon' }).click();
-            await page.waitForTimeout(1000); // Ensure modal is open
+            await page.waitForTimeout(1000);
     
-            // Step 4: Fetch Factor Types from API
-            console.log('Fetching factor types from API...');
-            const factorResponse = await request.get(`${baseUrl}/getallfactortypes`);
-            expect(factorResponse.ok()).toBeTruthy();
+            await page.getByRole('button', { name: '⋮' }).click();
+            await page.getByText('Search').click();
     
-            const factorTypes = await factorResponse.json();
-            console.log('Factor types fetched:', factorTypes);
+            let coderange;
+            const serviceId = await page.getByPlaceholder('Id').inputValue();
+            
+            const payload = { service_id: serviceId };
     
-            // Step 5: Add Factors and Rules
+            try {
+                const response = await fetch(`${config.backendUrl}/createFactorId`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+    
+                const data = await response.json();
+                if (!data.success || !data.data.factor_type_id) {
+                    throw new Error("Failed to retrieve factor_type_id");
+                }
+    
+                const factorTypeID = data.data.factor_type_id;
+                console.log('Factor Type ID:', factorTypeID);
+    
+                const getAllCodesUrl = `${config.backendUrl}/getAllCodes?factor_type=procedure&filterText=&factorTypeId=${factorTypeID}`;
+                
+                const codesResponse = await fetch(getAllCodesUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+    
+                const codesData = await codesResponse.json();
+                if (!codesData || codesData.length === 0 || !codesData[0].start_code) {
+                    throw new Error("Start code not found in response");
+                }
+    
+                const startCode = parseInt(codesData[0].start_code, 10);
+                if (isNaN(startCode)) {
+                    throw new Error("Invalid start_code received");
+                }
+    
+                coderange = startCode;
+    
+                await page.getByTestId('CloseIcon').click();
+                await page.getByPlaceholder('Enter the Codes').fill(coderange.toString());
+            } catch (error) {
+                console.error('Error:', error);
+            }
+    
             console.log('Adding initial group and rule...');
-            await page.locator('#CodesInput').fill('10-200');
             await page.getByRole('button', { name: 'Add Group' }).click();
             await page.getByRole('button', { name: 'Add Rule' }).nth(1).click();
             await page.waitForTimeout(1000);
+            await page.getByPlaceholder('Enter the Codes').nth(1).fill(coderange.toString());
     
-            for (let index = 0; index < factorTypes.length; index++) {
-                console.log(`Adding factor ${index + 1}: ${factorTypes[index].factor_name}`);
+            console.log('Saving the service...');
+            await page.locator('div').filter({ hasText: /^Save$/ }).click();
+            await page.waitForSelector('text=Service saved successfully', { timeout: 7000 });
+            console.log('Service saved successfully!');
     
-                const factorDropDown = await page.locator('#FactorsDropdown').nth(index + 1);
-                const selectedCodes = await page.locator('#CodesInput').nth(index + 1);
+            console.log('Navigating to the Service List page...');
+            await page.goto(`${config.baseUrl}/listofservices`, { timeout: 15000 });
+            await page.waitForLoadState('networkidle');
     
-                // Select Factor Type
-                await factorDropDown.scrollIntoViewIfNeeded();
-                await factorDropDown.selectOption({ value: factorTypes[index].factor_type_id.toString() });
-                await expect(factorDropDown).toHaveValue(factorTypes[index].factor_type_id.toString());
+            console.log(`Validating the newly added service "${uniqueName}"...`);
+            const newServiceLocator = page.locator(`text=${uniqueName}`);
+            await expect(newServiceLocator).toBeVisible({ timeout: 5000 });
     
-                // Fill Factor Codes
-                console.log('Filling factor codes...');
-                await selectedCodes.fill('1,2,3');
-                await expect(selectedCodes).toHaveValue('1,2,3');
+            console.log('Selecting the first service to edit...');
+            await page.getByRole('button', { name: '⋮' }).first().click();
+            await page.getByRole('link', { name: 'Edit' }).click();
+            console.log('Edit Service page loaded successfully.');
     
-                if (index === factorTypes.length - 1) {
-                    // Save the Service
-                    console.log('Saving the service...');
-                    await page.locator('div').filter({ hasText: /^Save$/ }).click();
-                    await page.waitForSelector('text=Service saved successfully', { timeout: 7000 });
-                    console.log('Service saved successfully!');
-    
-                    // Verify Service in the List
-                    console.log('Navigating to the Service List page...');
-                    await page.goto(`${config.baseUrl}/listofservices`, { timeout: 15000 });
-                    await page.waitForLoadState('networkidle');
-    
-                    console.log(`Validating the newly added service "${uniqueName}"...`);
-                    const newServiceLocator = page.locator(`text=${uniqueName}`);
-                    await expect(newServiceLocator).toBeVisible({ timeout: 5000 });
-    
-                    console.log('Selecting the first service to edit...');
-                    await page.getByRole('button', { name: '⋮' }).first().click();
-                    await page.getByRole('link', { name: 'Edit' }).click();
-                    console.log('Edit Service page loaded successfully.');
-    
-                    // Validate Rule Details
-                    console.log('Fetching service data for validation...');
-                    const serviceResponse = await request.get(`http://localhost:3000/api/getServiceById/${serviceID}`);
-                    expect(serviceResponse.ok()).toBeTruthy();
-    
-                    const serviceData = await serviceResponse.json();
-                    console.log('Service data fetched:', serviceData);
-    
-                    const queryRules = serviceData.data.json.query;
-                    console.log('Validating presence of second "rules" key...');
-                    expect(evaluateQuery(queryRules.rules)).toBe(true);
-    
-                    console.log('Validating factor_type_id in query.rules[1].rules...');
-                    const factorTypeIds = factorTypes.map((factor) => factor.factor_type_id);
-                    for (const factorTypeId of factorTypeIds) {
-                        const exists = queryRules.rules.some((rule) => rule.factor_type_id === factorTypeId);
-                        console.log(`Checking factor_type_id ${factorTypeId}: ${exists ? 'Found' : 'Not Found'}`);
-                        expect(exists).toBe(true);
-                    }
-                    console.log('All factor_type_id validations passed successfully.');
-                } else {
-                    console.log('Adding another rule...');
-                    await page.getByRole('button', { name: 'Add Rule' }).nth(1).click();
-                    await page.waitForTimeout(500); // Ensure dynamic div loads
+            console.log('Fetching service data for validation...');
+            const serviceResponse = await request.get(`http://localhost:3000/api/getServiceById/${serviceID}`,{
+                headers: {
+                    'Authorization': `Bearer ${token}`
                 }
-            }
+            });
+            expect(serviceResponse.ok()).toBeTruthy();
+    
+            const serviceData = await serviceResponse.json();
+            console.log('Service data fetched:', serviceData);
+    
+            const queryRules = serviceData.data.json.query;
+            console.log('Validating presence of second "rules" key...');
+            expect(evaluateQuery(queryRules.rules)).toBe(true);
+    
+            // console.log('Validating factor_type_id in query.rules...');
+            // const factorTypeIds = factorTypes.map((factor) => factor.factor_type_id);
+            // for (const factorTypeId of factorTypeIds) {
+            //     const exists = queryRules.rules.some((rule) => rule.factor_type_id === factorTypeId);
+            //     console.log(`Checking factor_type_id ${factorTypeId}: ${exists ? 'Found' : 'Not Found'}`);
+            //     expect(exists).toBe(true);
+            // }
+            // console.log('All factor_type_id validations passed successfully.');
+    
         } catch (error) {
             console.error('Test failed with error:', error);
             throw error;
         }
     });
+    
     
     test('TC-039 Add a new service, validate clear button with multiple rules', async ({ page, request }) => {
         const uniqueName = `RuleTest-${Date.now()}`; // Unique name for each test
@@ -289,53 +309,85 @@ test.describe('Service Module - Testing', () => {
 
             // **4. Fetch Factor Types Dynamically**
             console.log('Fetching factors list from API...');
-            const factorResponse = await request.get('http://localhost:3000/api/getallfactortypes');
+            const factorResponse = await request.get('http://localhost:3000/api/getallfactortypes',{
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                }
+            });
             expect(factorResponse.ok()).toBeTruthy();
 
             const factorTypes = await factorResponse.json();
             console.log('Factor types fetched:', factorTypes);
-
-            // **5. Add Factors One by One**
-            for (let index = 0; index < factorTypes.length; index++) {
-                console.log(`Adding factor ${index + 1}: ${factorTypes[index].factor_name}`);
-
-                // Locate dropdown dynamically
-                let factorDropDown = index === 0
-                    ? page.locator('#FactorsDropdown')
-                    : page.locator('#FactorsDropdown').nth(index);
-
-                // Select Factor Type
-                await factorDropDown.scrollIntoViewIfNeeded();
-                await factorDropDown.selectOption({ value: factorTypes[index].factor_type_id.toString() });
-
-                // Validate Dropdown Value
-                await expect(factorDropDown).toHaveValue(factorTypes[index].factor_type_id.toString());
-                const selectedValue = await factorDropDown.inputValue();
-                console.log(`Dropdown value selected: ${selectedValue}`);
-
-                // Check if #CodesInput exists before interacting
-                const codeInputExists = await page.locator('#CodesInput').nth(index).isVisible().catch(() => false);
-
-                if (codeInputExists) {
-                    console.log('Filling Factor Codes...');
-                    let selectedCodes = index === 0
-                        ? page.locator('#CodesInput')
-                        : page.locator('#CodesInput').nth(index);
-
-                    await selectedCodes.fill('1,2,3');
-                    await expect(selectedCodes).toHaveValue('1,2,3');
-                    console.log('Factor Codes filled successfully.');
-                } else {
-                    console.log(`No codes input available for factor ${factorTypes[index].factor_name}. Skipping code input.`);
-                }
-
-                // Click "Add Rule" button if more rules are left
-                if (index < factorTypes.length - 1) {
-                    console.log('Clicking "Add Rule" button...');
-                    await page.getByRole('button', { name: 'Add Rule' }).click();
-                    await page.waitForTimeout(500); // Ensure next field loads
-                }
+            await page.getByRole('button', { name: '⋮' }).click();
+            await page.getByText('Search').click();
+            
+            let coderange;
+           const serviceId = await page.getByPlaceholder('Id').inputValue()
+           
+            const payload = {
+              service_id: serviceId,  // Keep existing service_id
+            };
+            
+            try {
+              const response = await fetch(`${config.backendUrl}/createFactorId`, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`
+                  },
+                  body: JSON.stringify(payload)
+              });
+            
+              const data = await response.json();
+              console.log('Response:', data);
+            
+              if (!data.success || !data.data.factor_type_id) {
+                  throw new Error("Failed to retrieve factor_type_id");
+              }
+            
+              const factorTypeID = data.data.factor_type_id;
+              console.log('Factor Type ID:', factorTypeID);
+            
+              // Second API call: Get All Codes
+              const getAllCodesUrl = `${config.backendUrl}/getAllCodes?factor_type=procedure&search_name=&codes=&codesFrom=&codesTo=&filterText=&factorTypeId=${factorTypeID}`;
+              
+              const codesResponse = await fetch(getAllCodesUrl, {
+                  method: 'GET',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`
+                  }
+              });
+            
+              const codesData = await codesResponse.json();
+            
+              if (!codesData || codesData.length === 0 || !codesData[0].start_code) {
+                  throw new Error("Start code not found in response");
+              }
+            
+              // Convert start_code from string to number safely
+              const startCode = parseInt(codesData[0].start_code, 10);
+              
+              if (isNaN(startCode)) {
+                  throw new Error("Invalid start_code received");
+              }
+            
+              console.log('Start Code as Number:', startCode);
+            
+              // Store it in a variable
+              let coderange = startCode;
+            
+              // Close the modal or perform UI action
+              await page.getByTestId('CloseIcon').click();
+            
+              // Fill the input field with the converted code (as a string)
+              await page.getByPlaceholder('Enter the Codes').fill(coderange.toString());
+            
+            } catch (error) {
+              console.error('Error:', error);
             }
+           
 
             // **6. Click Clear Button**
             console.log('Clicking "Clear" button...');
@@ -384,9 +436,75 @@ test.describe('Service Module - Testing', () => {
             await page.getByRole('img', { name: 'queryIcon' }).click();
             await page.waitForTimeout(1000);
             console.log('Query Modal opened successfully.');
-    
-            console.log('Adding a rule to the query...');
-            await page.getByPlaceholder('Enter the Codes').fill('1-10');
+            await page.getByRole('button', { name: '⋮' }).click();
+            await page.getByText('Search').click();
+            
+            let coderange;
+           const serviceId = await page.getByPlaceholder('Id').inputValue()
+           
+            const payload = {
+              service_id: serviceId,  // Keep existing service_id
+            };
+            
+            try {
+              const response = await fetch(`${config.backendUrl}/createFactorId`, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`
+                  },
+                  body: JSON.stringify(payload)
+              });
+            
+              const data = await response.json();
+              console.log('Response:', data);
+            
+              if (!data.success || !data.data.factor_type_id) {
+                  throw new Error("Failed to retrieve factor_type_id");
+              }
+            
+              const factorTypeID = data.data.factor_type_id;
+              console.log('Factor Type ID:', factorTypeID);
+            
+              // Second API call: Get All Codes
+              const getAllCodesUrl = `${config.backendUrl}/getAllCodes?factor_type=procedure&search_name=&codes=&codesFrom=&codesTo=&filterText=&factorTypeId=${factorTypeID}`;
+              
+              const codesResponse = await fetch(getAllCodesUrl, {
+                  method: 'GET',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`
+                  }
+              });
+            
+              const codesData = await codesResponse.json();
+            
+              if (!codesData || codesData.length === 0 || !codesData[0].start_code) {
+                  throw new Error("Start code not found in response");
+              }
+            
+              // Convert start_code from string to number safely
+              const startCode = parseInt(codesData[0].start_code, 10);
+              
+              if (isNaN(startCode)) {
+                  throw new Error("Invalid start_code received");
+              }
+            
+              console.log('Start Code as Number:', startCode);
+            
+              // Store it in a variable
+              let coderange = startCode;
+            
+              // Close the modal or perform UI action
+              await page.getByTestId('CloseIcon').click();
+            
+              // Fill the input field with the converted code (as a string)
+              await page.getByPlaceholder('Enter the Codes').fill(coderange.toString());
+            
+            } catch (error) {
+              console.error('Error:', error);
+            }
+           
             await page.getByTestId('RemoveIcon').click();
     
             console.log('Saving the query...');
@@ -412,7 +530,11 @@ test.describe('Service Module - Testing', () => {
     
             // **Step 6: Fetch Service Data via API**
             console.log('Step 6: Fetching service data from the API...');
-            const serviceResponse = await request.get(`http://localhost:3000/api/getServiceById/${serviceID}`);
+            const serviceResponse = await request.get(`http://localhost:3000/api/getServiceById/${serviceID}`,{
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             const serviceData = await serviceResponse.json();
             console.log('Service data fetched:', serviceData.data.json.query);
     

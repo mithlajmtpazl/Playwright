@@ -1,5 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const config = require('./../configureModule/config');
+const fs = require('fs');
+
 
 /**
  * Service Listing Functionality Tests
@@ -10,11 +12,18 @@ test.describe('Service Listing Functionality Tests', () => {
   const baseUrl = config.baseUrl;
   const backendUrl = config.backendUrl;
   let servicesFromApi = [];
+  const tokenData = JSON.parse(fs.readFileSync('token.json', 'utf8'));
+    const token = tokenData.token;
 
   // Fetch services data before running tests
   test.beforeAll(async ({ request }) => {
     console.log('Fetching services from API...');
-    const response = await request.get(`${backendUrl}/listservices?searchterm&page=1&limit=10`, { timeout: 10000 });
+    const response = await request.get(`${backendUrl}/listservices?searchterm&page=1&limit=10`, {
+      timeout: 10000,
+      headers: {
+        'Authorization': `Bearer ${token}`, // Add authentication token if required
+      },
+    });
     expect(response.ok()).toBeTruthy(); // Ensure API call is successful
 
     const responseData = await response.json();
@@ -25,9 +34,14 @@ test.describe('Service Listing Functionality Tests', () => {
   });
 
   // Test to validate services in the UI
-  test('Validate service names are displayed in the UI', async ({ page }) => {
+  test('TC-044 Validate service names are displayed in the UI', async ({ page }) => {
     console.log('Navigating to the services listing page...');
-    await page.goto(`${baseUrl}/listofservices`, { timeout: 15000 });
+    await page.goto(`${baseUrl}/listofservices`, { 
+      timeout: 15000,
+      headers: {
+        'Authorization': `Bearer ${token}`, // Add authentication token if required
+      },
+     });
 
     for (const serviceName of servicesFromApi) {
       console.log(`Validating service: ${serviceName}`);
@@ -42,7 +56,7 @@ test.describe('Service Listing Functionality Tests', () => {
 
 
 
-  test('Validate the search functionality for services', async ({ page }) => {
+  test('TC-045 Validate the search functionality for services', async ({ page }) => {
     const searchTerm = servicesFromApi[0]; // Pick the first service name
     console.log(searchTerm, 'miniini');
 

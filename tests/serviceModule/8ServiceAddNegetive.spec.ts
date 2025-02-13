@@ -1,9 +1,16 @@
 const { test, expect } = require('@playwright/test');
 const config = require('./../configureModule/config');
+const fs= require('fs');
+
+
+
 
 test.describe('Service Module - Negative Test Scenarios For Adding A Service', () => {
   let uniqueServiceName = `DemoService-${Date.now()}`; // Generate a unique name for each test
   const serviceDescription = 'Test Description';
+  const tokenData = JSON.parse(fs.readFileSync('token.json', 'utf8'));
+      const token = tokenData.token;
+
 
   test('TC-030 Error displayed when adding a service without a rule', async ({ page }) => {
     try {
@@ -36,10 +43,12 @@ test.describe('Service Module - Negative Test Scenarios For Adding A Service', (
       console.error('Test failed due to an error:', error);
       throw error;
     }
-  });
+   })
 
   test('TC-031 Error displayed when Service Name contains only spaces', async ({ page }) => {
+
     try {
+      
       console.log('[Step 1] Navigating to the Add Service page...');
       await page.goto(`${config.baseUrl}/addservice`, { timeout: 20000 });
       await expect(page).toHaveURL(`${config.baseUrl}/addservice`);
@@ -58,7 +67,77 @@ test.describe('Service Module - Negative Test Scenarios For Adding A Service', (
       console.log('[Step 4] Attempting to save service with invalid name...');
       await page.getByRole('img', { name: 'queryIcon' }).click();
       await page.waitForTimeout(1000); // Ensures modal is open
-      await page.getByPlaceholder('Enter the Codes').fill('10-20');
+      await page.getByRole('button', { name: '⋮' }).click();
+      await page.getByText('Search').click();
+      
+      let coderange;
+     const serviceId = await page.getByPlaceholder('Id').inputValue()
+     
+      const payload = {
+        service_id: serviceId,  // Keep existing service_id
+      };
+      
+      try {
+        const response = await fetch(`${config.backendUrl}/createFactorId`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+      
+        const data = await response.json();
+        console.log('Response:', data);
+      
+        if (!data.success || !data.data.factor_type_id) {
+            throw new Error("Failed to retrieve factor_type_id");
+        }
+      
+        const factorTypeID = data.data.factor_type_id;
+        console.log('Factor Type ID:', factorTypeID);
+      
+        // Second API call: Get All Codes
+        const getAllCodesUrl = `${config.backendUrl}/getAllCodes?factor_type=procedure&search_name=&codes=&codesFrom=&codesTo=&filterText=&factorTypeId=${factorTypeID}`;
+        
+        const codesResponse = await fetch(getAllCodesUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            }
+        });
+      
+        const codesData = await codesResponse.json();
+      
+        if (!codesData || codesData.length === 0 || !codesData[0].start_code) {
+            throw new Error("Start code not found in response");
+        }
+      
+        // Convert start_code from string to number safely
+        const startCode = parseInt(codesData[0].start_code, 10);
+        
+        if (isNaN(startCode)) {
+            throw new Error("Invalid start_code received");
+        }
+      
+        console.log('Start Code as Number:', startCode);
+      
+        // Store it in a variable
+        let coderange = startCode;
+      
+        // Close the modal or perform UI action
+        await page.getByTestId('CloseIcon').click();
+      
+        // Fill the input field with the converted code (as a string)
+        await page.getByPlaceholder('Enter the Codes').fill(coderange.toString());
+      
+      } catch (error) {
+        console.error('Error:', error);
+      }
+      
+
+    // await page.getByPlaceholder('Enter the Codes').fill('10-20');
       await page.locator('div').filter({ hasText: /^Save$/ }).click();
 
       console.log('[Step 5] Verifying error message...');
@@ -202,8 +281,74 @@ test.describe('Service Module - Negative Test Scenarios For Adding A Service', (
     console.log('[Step 4] Attempting to save service with invalid name...');
     await page.getByRole('img', { name: 'queryIcon' }).click();
     await page.waitForTimeout(1000); // Ensures modal is open
-    await page.getByPlaceholder('Enter the Codes').fill('10-20');
-
+    await page.getByRole('button', { name: '⋮' }).click();
+    await page.getByText('Search').click();
+    let coderange;
+    const serviceId = await page.getByPlaceholder('Id').inputValue()
+    
+     const payload = {
+       service_id: serviceId,  // Keep existing service_id
+     };
+     
+     try {
+       const response = await fetch(`${config.backendUrl}/createFactorId`, {
+           method: 'POST',
+           headers: {
+               'Content-Type': 'application/json',
+               Authorization: `Bearer ${token}`
+           },
+           body: JSON.stringify(payload)
+       });
+     
+       const data = await response.json();
+       console.log('Response:', data);
+     
+       if (!data.success || !data.data.factor_type_id) {
+           throw new Error("Failed to retrieve factor_type_id");
+       }
+     
+       const factorTypeID = data.data.factor_type_id;
+       console.log('Factor Type ID:', factorTypeID);
+     
+       // Second API call: Get All Codes
+       const getAllCodesUrl = `${config.backendUrl}/getAllCodes?factor_type=procedure&search_name=&codes=&codesFrom=&codesTo=&filterText=&factorTypeId=${factorTypeID}`;
+       
+       const codesResponse = await fetch(getAllCodesUrl, {
+           method: 'GET',
+           headers: {
+               'Content-Type': 'application/json',
+               Authorization: `Bearer ${token}`
+           }
+       });
+     
+       const codesData = await codesResponse.json();
+     
+       if (!codesData || codesData.length === 0 || !codesData[0].start_code) {
+           throw new Error("Start code not found in response");
+       }
+     
+       // Convert start_code from string to number safely
+       const startCode = parseInt(codesData[0].start_code, 10);
+       
+       if (isNaN(startCode)) {
+           throw new Error("Invalid start_code received");
+       }
+     
+       console.log('Start Code as Number:', startCode);
+     
+       // Store it in a variable
+       let coderange = startCode;
+     
+       // Close the modal or perform UI action
+       await page.getByTestId('CloseIcon').click();
+     
+       // Fill the input field with the converted code (as a string)
+       await page.getByPlaceholder('Enter the Codes').fill(coderange.toString());
+     
+     } catch (error) {
+       console.error('Error:', error);
+     }
+    
     const invalidStartDate = '2024-12-31'; // Future date
     const invalidExpiryDate = '2024-12-01'; // Earlier than start date
 

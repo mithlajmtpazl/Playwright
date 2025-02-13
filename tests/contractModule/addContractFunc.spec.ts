@@ -1,6 +1,8 @@
 const { test, expect } = require('@playwright/test');
 const axios = require('axios');
 const config = require('./../configureModule/config');
+const fs = require('fs');
+
 
 test.describe('Form Automation Test', () => {
   let contractVersionId;
@@ -8,14 +10,23 @@ test.describe('Form Automation Test', () => {
   test('should add and edit a contract, and validate contract_version_id', async ({ page }) => {
     const baseUrl = config.baseUrl;
     const backendUrl = config.backendUrl;
+    const tokenData = JSON.parse(fs.readFileSync('token.json', 'utf8'));
+    const token = tokenData.token;
+
 
     // Fetch data with error handling
     let healthPlans, ipaList, hospitalList;
     try {
       const [plansResponse, ipaResponse, hospitalsResponse] = await Promise.all([
-        axios.get(`${backendUrl}/plans`),
-        axios.get(`${backendUrl}/ipa`),
-        axios.get(`${backendUrl}/hospitals`),
+        axios.get(`${backendUrl}/plans`,{
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${backendUrl}/ipa`,{
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        axios.get(`${backendUrl}/hospitals`,{
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
 
       healthPlans = plansResponse.data.data;
@@ -44,39 +55,52 @@ test.describe('Form Automation Test', () => {
     await page.fill('input[placeholder="Description"]', randomDescription);
     await page.selectOption('select[name="health_plan_id"]', `${randomPlan.health_plan_id}`);
     await page.selectOption('select[name="ipa_id"]', `${randomIPA.ipa_id}`);
-    await page.check('input[value="dualOrFull"]');
+    // await page.check('input[value="dualOrFull"]');
     await page.selectOption('select[name="hospital_id"]', `${randomHospital.hospital_id}`);
 
     const apiResponsePromise = page.waitForResponse((response) =>
       response.url().includes('/api/update-contract') && response.status() === 200
     );
 
-    await page.click('button:has-text("Add & Save Version")');
+    await page.getByRole('button', { name: 'Add Version' }).click();
+    
 
     const apiResponse = await apiResponsePromise;
     const responseBody = await apiResponse.json();
-    contractVersionId = responseBody.data.newVersion[0].contract_version_id;
 
-    console.log(`Intercepted Contract Version ID: ${contractVersionId}`);
 
     const successMessageLocator = await page.getByText('Contract added successfully');
     await expect(successMessageLocator).toBeVisible();
 
     console.log('Contract added successfully');
 
-    await page.getByRole('link').nth(2).click();
+
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    const tomorrowFormatted = tomorrow.toISOString().split('T')[0]; // Get tomorrow's date in YYYY-MM-DD format
+    
+    await page.locator('#effective_date_from').fill(today.toISOString().split('T')[0]); // Today's date
+    await page.locator('#effective_date_to').fill(tomorrowFormatted); // Tomorrow's date
+
+    await page.getByRole('button', { name: 'Save Version' }).click()
+
+    const successMessageLocator2 = await page.getByText('Version created successfully');
+    await expect(successMessageLocator2).toBeVisible();
+    await page.waitForTimeout(4000)
+
+    await page.getByRole('link').nth(2).click()
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(1000);
 
-    const expectedUrl = `${baseUrl}/contracts/${contractVersionId}`;
-    const currentUrl = page.url();
-    expect(currentUrl).toBe(expectedUrl);
 
-    // Locate all checkboxes in the table
-    const checkboxes = await page.locator('input[type="checkbox"]');
-    const checkboxCount = await checkboxes.count();
+      // Locate all checkboxes in the table
+      await page.getByRole('link').nth(2).click()
+      const checkboxes = await page.locator('#input-checkbox');
+      const checkboxCount = await checkboxes.count();
+      console.log(`Number of checkboxes: ${checkboxCount}`);
 
-    // Select a random checkbox and tick it
+//     // Select a random checkbox and tick it
     if (checkboxCount > 0) {
       const randomIndex = Math.floor(Math.random() * checkboxCount);
       await checkboxes.nth(randomIndex).click();

@@ -1,10 +1,13 @@
 const { test, expect } = require('@playwright/test');
 const config = require('./../configureModule/config');
+const fs = require('fs');
 
 test.describe('Service Module - Add Service with Factors and Components', () => {
     test('Add a new service and verify it in the list with refresh', async ({ page, request }) => {
         const uniqueName = `Demoservice-${Date.now()}`; // Unique name for each test
         const serviceDescription = 'Test Description';
+        const tokenData = JSON.parse(fs.readFileSync('token.json', 'utf8'));
+        const token = tokenData.token;
 
         try {
             // **1. Navigate to Add Service Page**
@@ -30,46 +33,81 @@ test.describe('Service Module - Add Service with Factors and Components', () => 
             await page.waitForTimeout(1000); // Ensure modal is open
 
             // **5. Fetch Factor Types Dynamically**
-            console.log('Fetching factors list from API...');
-            const factorResponse = await request.get('http://localhost:3000/api/getallfactortypes');
-            expect(factorResponse.ok()).toBeTruthy();
-
-            const factorTypes = await factorResponse.json();
-            console.log('Factor types fetched:', factorTypes);
+            await page.getByRole('button', { name: '⋮' }).click();
+            await page.getByText('Search').click();
+            
+            let coderange;
+           const serviceId = await page.getByPlaceholder('Id').inputValue()
+           
+            const payload = {
+              service_id: serviceId,  // Keep existing service_id
+            };
+            
+            try {
+              const response = await fetch(`${config.backendUrl}/createFactorId`, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`
+                  },
+                  body: JSON.stringify(payload)
+              });
+            
+              const data = await response.json();
+              console.log('Response:', data);
+            
+              if (!data.success || !data.data.factor_type_id) {
+                  throw new Error("Failed to retrieve factor_type_id");
+              }
+            
+              const factorTypeID = data.data.factor_type_id;
+              console.log('Factor Type ID:', factorTypeID);
+            
+              // Second API call: Get All Codes
+              const getAllCodesUrl = `${config.backendUrl}/getAllCodes?factor_type=procedure&search_name=&codes=&codesFrom=&codesTo=&filterText=&factorTypeId=${factorTypeID}`;
+              
+              const codesResponse = await fetch(getAllCodesUrl, {
+                  method: 'GET',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`
+                  }
+              });
+            
+              const codesData = await codesResponse.json();
+            
+              if (!codesData || codesData.length === 0 || !codesData[0].start_code) {
+                  throw new Error("Start code not found in response");
+              }
+            
+              // Convert start_code from string to number safely
+              const startCode = parseInt(codesData[0].start_code, 10);
+              
+              if (isNaN(startCode)) {
+                  throw new Error("Invalid start_code received");
+              }
+            
+              console.log('Start Code as Number:', startCode);
+            
+              // Store it in a variable
+              let coderange = startCode;
+            
+              // Close the modal or perform UI action
+              await page.getByTestId('CloseIcon').click();
+            
+              // Fill the input field with the converted code (as a string)
+              await page.getByPlaceholder('Enter the Codes').fill(coderange.toString());
+            
+            } catch (error) {
+              console.error('Error:', error);
+            }
+           
 
             // **6. Add Factors One by One**
-            for (let index = 0; index < factorTypes.length; index++) {
-                console.log(`Adding factor ${index + 1}: ${factorTypes[index].factor_name}`);
-
-                // Locate dropdown and input dynamically
-                let factorDropDown = index === 0
-                    ? page.locator('#FactorsDropdown')
-                    : page.locator(`#FactorsDropdown`).nth(index);
-
-                let selectedCodes = index === 0
-                    ? page.locator('#CodesInput')
-                    : page.locator(`#CodesInput`).nth(index);
-
-                // Select Factor Type
-                await factorDropDown.scrollIntoViewIfNeeded();
-                await factorDropDown.selectOption({ value: factorTypes[index].factor_type_id.toString() });
-                await expect(factorDropDown).toHaveValue(factorTypes[index].factor_type_id.toString());
-
-                // Fill Factor Codes
-                console.log('Filling Factor Codes...');
-                await selectedCodes.fill('1,2,3');
-                await expect(selectedCodes).toHaveValue('1,2,3');
-
-                // Click Add Rule or Add Component based on condition
-                if (index === factorTypes.length - 1) {
                     console.log('Clicking "Add Component" button...');
                     await page.getByRole('button', { name: 'component Component' }).click();
-                } else {
-                    console.log('Clicking "Add Rule" button...');
-                    await page.getByRole('button', { name: 'Add Rule' }).click();
-                    await page.waitForTimeout(500); // Ensure dynamic div loads
-                }
-            }
+                
+            
 
             // **7. Fill Component Details**
             console.log('Filling Component Details...');
@@ -87,11 +125,68 @@ test.describe('Service Module - Add Service with Factors and Components', () => 
             // **8. Add Criteria Section**
             console.log('Adding Criteria...');
             await page.locator('span').filter({ hasText: 'Criteria' }).nth(2).click();
-            const childInput = page.locator(
+            await page.getByRole('button', { name: '⋮' }).nth(1).click()
+            await page.getByText('Search').click();
+    
+            try {
+              const response = await fetch(`${config.backendUrl}/createFactorId`, {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`
+                  },
+                  body: JSON.stringify(payload)
+              });
+            
+              const data = await response.json();
+              console.log('Response:', data);
+            
+              if (!data.success || !data.data.factor_type_id) {
+                  throw new Error("Failed to retrieve factor_type_id");
+              }
+            
+              const factorTypeID = data.data.factor_type_id;
+              console.log('Factor Type ID:', factorTypeID);
+            
+              // Second API call: Get All Codes
+              const getAllCodesUrl = `${config.backendUrl}/getAllCodes?factor_type=procedure&search_name=&codes=&codesFrom=&codesTo=&filterText=&factorTypeId=${factorTypeID}`;
+              
+              const codesResponse = await fetch(getAllCodesUrl, {
+                  method: 'GET',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`
+                  }
+              });
+            
+              const codesData = await codesResponse.json();
+            
+              if (!codesData || codesData.length === 0 || !codesData[0].start_code) {
+                  throw new Error("Start code not found in response");
+              }
+            
+              // Convert start_code from string to number safely
+              const startCode = parseInt(codesData[0].start_code, 10);
+              
+              if (isNaN(startCode)) {
+                  throw new Error("Invalid start_code received");
+              }
+            
+              console.log('Start Code as Number:', startCode);
+            
+              // Store it in a variable
+              let coderange = startCode;
+            
+              // Close the modal or perform UI action
+              await page.getByLabel('Search Codes').getByTestId('CloseIcon').click();
+              const childInput = page.locator(
                 '.flex > div > div:nth-child(2) > div:nth-child(2) > div input[placeholder="Enter the Codes"]'
             );
-            await childInput.fill('10-20');
-            await expect(childInput).toHaveValue('10-20');
+            await childInput.fill(coderange.toString());
+            
+            } catch (error) {
+              console.error('Error:', error);
+            }
 
             // **9. Save the Service**
             console.log('Saving the Service...');

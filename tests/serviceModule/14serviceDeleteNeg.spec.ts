@@ -5,7 +5,7 @@ test.describe('Delete Non-Existent Service by Mimicking Backend Response', () =>
   const baseUrl = config.baseUrl;
   const backendUrl = config.backendUrl;
 
-  test('Mock API response and attempt to delete a non-existent service', async ({ page, context }) => {
+  test('TC-047 Mock API response and attempt to delete a non-existent service', async ({ page, context }) => {
     // Step 1: Intercept the request and provide a mocked response
     await context.route(`${backendUrl}/listservices?searchterm&page=1&limit=10`, async (route) => {
       // Mimic the backend response with a fake service

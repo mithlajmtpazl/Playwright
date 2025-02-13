@@ -1,10 +1,13 @@
 const { test, expect } = require('@playwright/test');
 const axios = require('axios');
 const config = require('./../configureModule/config');
+const fs = require('fs');
 
 test.describe('Contract Compare Module Test', () => {
   const baseUrl = config.baseUrl;
   const backendUrl = config.backendUrl;
+  const tokenData = JSON.parse(fs.readFileSync('token.json', 'utf8'));
+  const token = tokenData.token;
 
   test('should show list of services and contracts', async ({ page, request }) => {
     // Navigate to the compare page
@@ -15,7 +18,10 @@ test.describe('Contract Compare Module Test', () => {
     await expect(contractListText).toBeVisible();
 
     // Send a GET request to the backend API for services
-    const response = await request.get(`${backendUrl}/listservices?searchterm&page=1&limit=10`, { timeout: 10000 });
+    const response = await request.get(`${backendUrl}/listservices?searchterm&page=1&limit=10`, {
+       headers: { Authorization: `Bearer ${token}` }, // Add the token to the request headers
+       timeout: 10000
+       });
     expect(response.ok()).toBeTruthy(); // Ensure the API call is successful
 
     // Parse the response data
@@ -28,6 +34,7 @@ test.describe('Contract Compare Module Test', () => {
     const contractResponse = await request.post(
       `${backendUrl}/contracts/get-all-contracts-configuration?page=1&limit=10&initial=true&searchQuery=`,
       {
+        headers: { Authorization: `Bearer ${token}` }, // Add the token to the request headers
         timeout: 10000, // Timeout for the request
         data: { contractId: [] }, // Payload for the POST request
       }
@@ -65,6 +72,7 @@ test.describe('Contract Compare Module Test', () => {
     // Send a GET request to the backend API for contracts
     const contractResponse = await request.get(`${backendUrl}/contracts/get-all-latest-contracts?searchQuery=`, {
       timeout: 10000,
+      headers: { Authorization: `Bearer ${token}` }, // Add the token to the request headers
     });
 
     expect(contractResponse.ok()).toBeTruthy(); // Ensure the API call is successful
@@ -89,6 +97,7 @@ test.describe('Contract Compare Module Test', () => {
   
     // Send a GET request to the backend API for contracts
     const contractResponse = await request.get(`${backendUrl}/contracts/get-all-latest-contracts?searchQuery=`, {
+      headers: { Authorization: `Bearer ${token}` }, // Add the token to the request headers
       timeout: 10000,
     });
   
@@ -106,7 +115,9 @@ test.describe('Contract Compare Module Test', () => {
       `${backendUrl}/contracts/get-all-contracts-configuration?page=1&limit=10&initial=false&searchQuery=`,
       {
         data: { contractId: [firstContract.contract_version_id] },
+        headers: { Authorization: `Bearer ${token}` }, // Add the token to the request headers
       }
+      
     );
   
     // Parse the response data
@@ -118,7 +129,7 @@ test.describe('Contract Compare Module Test', () => {
     expect(contractServiceResponsibility.length).toBeGreaterThan(0);
   
     // Step 1: Check the contract checkbox to display the dropdowns
-    const contractCheckboxLocator = page.locator(`#${firstContract.name}`).getByRole('checkbox');
+    const contractCheckboxLocator = page.getByText(firstContract.name).locator('..').getByRole('checkbox');
     await contractCheckboxLocator.check(); // Check the contract checkbox
     expect(await contractCheckboxLocator.isChecked()).toBeTruthy(); // Verify the checkbox is checked
   

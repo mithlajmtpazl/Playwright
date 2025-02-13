@@ -1,10 +1,14 @@
 import { test, expect } from '@playwright/test';
 import { waitForDebugger } from 'inspector';
 const config = require('./../configureModule/config');
+const fs = require('fs');
 
 test.describe('Delete One service', () => {
     const baseUrl = config.baseUrl;
     const backendUrl = config.backendUrl;
+    const tokenData = JSON.parse(fs.readFileSync('token.json', 'utf8'));
+    const token = tokenData.token;
+
 
     test('Delete a single service from the service list page', async ({ page, request }) => {
         // Step 1: Navigate to the service list page
@@ -14,7 +18,12 @@ test.describe('Delete One service', () => {
         await page.waitForSelector('text=List of Services', { state: 'visible' });
     
         // Step 3: Fetch the list of services via the API
-        const response = await request.get(`${backendUrl}/listservices?searchterm&page=1&limit=10`);
+        const response = await request.get(`${backendUrl}/listservices?searchterm&page=1&limit=10`,{
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+            timeout: 10000, // 10 seconds
+        });
         const serviceData = await response.json();
     
         if (serviceData.data.length === 0) {
@@ -44,7 +53,12 @@ test.describe('Delete One service', () => {
         // await page.getByText('Service deleted successfully!').nth(3)
     
         // Step 7: Validate that the service has been deleted
-        const finalResponse = await request.get(`${backendUrl}/listservices?searchterm&page=1&limit=10`);
+        const finalResponse = await request.get(`${backendUrl}/listservices?searchterm&page=1&limit=10`,{
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+            timeout: 10000, // 10 seconds,
+        });
         const finalServiceData = await finalResponse.json();
     
         expect(finalServiceData.data.some(service => service.service.service_name === serviceName)).toBe(false);

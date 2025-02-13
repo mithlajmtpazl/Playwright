@@ -1,10 +1,13 @@
 const { test, expect } = require('@playwright/test');
 const config = require('./../configureModule/config');
+const fs = require('fs');
 
 test.describe('Service Editing Functional Tests ', () => {
     const baseUrl = config.baseUrl;
+    const tokenData = JSON.parse(fs.readFileSync('token.json', 'utf8'));
+    const token = tokenData.token;
 
-    test('Edit an existing service and verify changes', async ({ page }) => {
+    test('TC-046 Edit an existing service and verify changes', async ({ page }) => {
         const updatedServiceName = `Edited Service - ${Date.now()}`; // Unique name for the test
         const updatedDescription = 'Updated Description for the service';
 
@@ -65,7 +68,7 @@ test.describe('Service Editing Functional Tests ', () => {
 
             // **6. Validate Changes in the Service List**
             console.log('Validating the updated service in the Service List...');
-            await page.goto(`${baseUrl}/listofservices`, { timeout: 15000 });
+            await page.goto(`${baseUrl}/listofservices`, {timeout: 15000 });
             await page.waitForLoadState('networkidle');
             const updatedServiceLocator = page.locator(`text=${updatedServiceName}`);
             await expect(updatedServiceLocator).toBeVisible({ timeout: 5000 });
@@ -78,9 +81,6 @@ test.describe('Service Editing Functional Tests ', () => {
     });
 
 
-    test('validate add rule',async({page})=>{
-
-    })
 
 
 });
